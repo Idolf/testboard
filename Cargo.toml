@@ -1,0 +1,14 @@
+[package]
+name = "mydevice"
+version = "0.1.0"
+authors = ["Mathias Svensson <freaken@freaken.dk>"]
+
+[dependencies]
+efm32hg309f64 = { path = "../efm32hg309f64", features = ["rt"] }
+cortex-m = "0.5.2"
+cortex-m-rt = "0.5.1"
+
+[profile.release]
+debug-assertions = true
+panic = 'abort'
+lto = true
