@@ -1,14 +1,16 @@
 [package]
-name = "mydevice"
+name = "testboard"
 version = "0.1.0"
 authors = ["Mathias Svensson <freaken@freaken.dk>"]
 
 [dependencies]
-efm32hg309f64 = { path = "../efm32hg309f64", features = ["rt"] }
+efm32hg309f64 = { git = "https://github.com/Idolf/efm32hg309f64.git", features = ["rt"] }
 cortex-m = "0.5.2"
 cortex-m-rt = "0.5.1"
+panic-semihosting = "0.2.0"
+cortex-m-semihosting = "0.3.0"
 
 [profile.release]
 debug-assertions = true
-panic = 'abort'
+# panic = 'abort'
 lto = true
