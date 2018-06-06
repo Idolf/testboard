@@ -1,4 +1,4 @@
-#![feature(asm, lang_items)]
+#![feature(asm, lang_items, pin, const_fn)]
 #![no_main]
 #![no_std]
 
@@ -7,102 +7,212 @@ extern crate cortex_m;
 #[macro_use(entry, exception)]
 extern crate cortex_m_rt as rt;
 
-#[macro_use]
 extern crate cortex_m_semihosting;
 
 #[macro_use(interrupt)]
 extern crate efm32hg309f64;
 
+extern crate heapless;
 extern crate panic_semihosting;
+
+use heapless::consts::*;
+use heapless::RingBuffer;
 
 use rt::ExceptionFrame;
 
-fn get_21mhz_hfrco_calibration() -> u8 {
-    const ADDR: usize = 0x0fe081e0;
-    unsafe { *(ADDR as *const u8) }
+fn get_hfrco_calib_band_21() -> u8 {
+    const HFRCO_CALIB_BAND_21: usize = 0x0fe081e0;
+    unsafe { *(HFRCO_CALIB_BAND_21 as *const u8) }
+}
+
+fn init_wdog(wdog: &efm32hg309f64::wdog::RegisterBlock) {
+    wdog.ctrl.write(|w| unsafe { w.bits(0) });
 }
 
 fn init_clock(cmu: &efm32hg309f64::cmu::RegisterBlock) {
-    cmu.hfperclkdiv.write(|w| w.hfperclken().set_bit());
-    cmu.hfperclken0.write(|w| w.gpio().set_bit());
-    cmu.lfclksel.modify(|_, w| w.lfc().lfrco());
-    cmu.lfaclken0.write(|w| w.rtc().set_bit());
+    // See section 11.3 in the EFM32HF-RM for an overview of these clocks
 
-    cmu.hfrcoctrl.write(|w| unsafe {
-        w.band()
-            ._21mhz()
-            .tuning()
-            .bits(get_21mhz_hfrco_calibration())
-    });
+    // Enable rco's
+    cmu.oscencmd.write(|w| w.lfrcoen().set_bit());
     cmu.oscencmd.write(|w| w.hfrcoen().set_bit());
 
+    // Wait for rco's
+    while cmu.status.read().lfrcordy().bit_is_clear() {}
     while cmu.status.read().hfrcordy().bit_is_clear() {}
 
-    cmu.cmd.write(|w| w.hfclksel().hfrco());
+    // Choose 21MHz for the hfrco and calibrate it
+    //
+    // The lfrco does not need calibration; it's reset value is set to the correct calibration
+    // automatically
+    cmu.hfrcoctrl
+        .write(|w| unsafe { w.band()._21mhz().tuning().bits(get_hfrco_calib_band_21()) });
 
-    while cmu.status.read().hfrcosel().bit_is_clear() {}
+    // Enable the high frequency peripheral clock (hfperclk)
+    cmu.hfperclkdiv.write(|w| w.hfperclken().set_bit());
 
-    cmu.oscencmd.write(|w| w.lfrcoen().set_bit());
+    // Enable the gpio to use the hfperclk
+    cmu.hfperclken0.write(|w| w.gpio().set_bit());
+
+    // Enable the high frequency core clock for low energy peripherals
+    cmu.hfcoreclken0.write(|w| w.le().set_bit());
+
+    // Set clock source for lfa to use the lfrco and lfb to use hfcoreclk_le. The div2 is actually a
+    // lie, because we set it to div4 inside cmu.hfcoreclkdiv.
+    cmu.lfclksel
+        .modify(|_, w| w.lfa().lfrco().lfb().hfcoreclklediv2());
+    cmu.hfcoreclkdiv.write(|w| w.hfcoreclklediv().set_bit());
+
+    // Prescale the leuart0 clock by a factor of 8.
+    cmu.lfbpresc0.write(|w| w.leuart0().div8());
+
+    // Enable the rtc to use the lfrco (though the lfa)
+    cmu.lfaclken0.write(|w| w.rtc().set_bit());
+
+    // Enable the rtc to use the leuart0 (though the lfb)
+    cmu.lfbclken0.write(|w| w.leuart0().set_bit());
 }
 
-fn init_rtc(rtc: &efm32hg309f64::rtc::RegisterBlock) {
-    rtc.ifc
-        .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
+fn init_rtc(ms: u32, rtc: &efm32hg309f64::rtc::RegisterBlock) {
+    // Set the rtc compare value
+    let ticks_per_1000ms = 32768;
+    let ticks_per_cycle = ticks_per_1000ms * ms / 1000;
     rtc.comp0
-        .write(|w| unsafe { w.comp0().bits(0x8000 * 50 / 1000) });
-    rtc.ien.write(|w| w.comp0().set_bit());
+        .write(|w| unsafe { w.comp0().bits(ticks_per_cycle) });
 
-    rtc.ctrl
-        .write(|w| w.comp0top().set_bit().debugrun().set_bit().en().set_bit());
+    // Enable the rtc and set the rtc to use the compare value above
+    rtc.ctrl.write(|w| w.en().set_bit().comp0top().set_bit());
+
+    // Enable interrupts for the rtc
+    rtc.ien.write(|w| w.comp0().set_bit());
 }
 
-fn sleep(n: u32) {
-    for _ in 0..n {
-        cortex_m::asm::nop();
-    }
+fn init_leuart(
+    enable_tx: bool,
+    enable_rx: bool,
+    baud_rate: f32,
+    leuart: &efm32hg309f64::leuart0::RegisterBlock,
+) {
+    // The formulas in EFM32-HF-RM 17.3.3 says how to calculate the value of leuart.clkdiv from the
+    // desired baud rate. What it does not say is that the 3 lower bits of leuart.clkdiv must be 0
+    // (this is specified in 17.5.4).
+    //
+    // For instance they specify 616 as the value used to best achieve 9600 baud when using a 32768
+    // Hz clock (such as the lfrco). Actually a better value would be 617 or 618.
+    //
+    // The fact that the lower bits must be zero is also noticeable in the svd file. For a while we
+    // tried to set w.div().bits(616), which is equivalent to w.bits(616 * 8) -- which obviously did
+    // not go well.
+    //
+    // Here we are using a derived fomula for finding the correct value of clkdiv from the baud rate
+    // assuming that we are using the hfrco set tup 21MHz. Additionally use the w.div().bits(...)
+    // instead of w.bits(...), so if you try to port this to something else, make sure to shift this
+    // up accordingly.
+
+    let hfcoreclk_prescaler = 4.0;
+    let leuart_prescaler = 8.0;
+    let hf_frequency = 21_000_000.0;
+    let source_clock_frequency = hf_frequency / hfcoreclk_prescaler / leuart_prescaler;
+    let scale_factor: f32 = 32.0 * (source_clock_frequency / baud_rate - 1.0);
+    let scale_factor = (scale_factor + 0.5) as u16;
+
+    leuart
+        .clkdiv
+        .write(|w| unsafe { w.div().bits(scale_factor) });
+
+    leuart.route.write(|w| {
+        // Use location 1 for the route
+        // Location 1 TX==PB13, RX==PB14. See EFM32HF309 Datasheet section 4.2
+        w.location().loc1();
+
+        // Enable the tx pin
+        if enable_tx {
+            w.txpen().set_bit();
+        }
+        // Enable the rx pin
+        if enable_rx {
+            w.rxpen().set_bit();
+        }
+        w
+    });
+
+    leuart
+        .ctrl
+        .write(|w| w.stopbits().set_bit().databits().clear_bit());
+
+    leuart.cmd.write(|w| {
+        // Clear rx and tx buffers
+        w.clearrx().set_bit().cleartx().set_bit();
+
+        // Enable generation of tx signals
+        if enable_tx {
+            w.txen().set_bit();
+        }
+
+        // Enable reception of rx signals
+        if enable_rx {
+            w.rxen().set_bit();
+        }
+        w
+    });
+
+    leuart.ien.write(|w| w.rxdatav().set_bit());
+}
+
+fn init_gpio(gpio: &efm32hg309f64::gpio::RegisterBlock) {
+    gpio.pa_model.modify(|_, w| w.mode0().wiredand());
+    gpio.pa_doutset.write(|w| unsafe { w.doutset().bits(1) });
+    gpio.pb_modeh
+        .modify(|_, w| w.mode13().pushpull().mode14().input());
+}
+
+fn init_nvic(nvic: &mut cortex_m::peripheral::NVIC) {
+    nvic.enable(efm32hg309f64::Interrupt::RTC);
+    nvic.enable(efm32hg309f64::Interrupt::LEUART0);
 }
 
 entry!(main);
 #[inline]
 fn main() -> ! {
-    // const STDOUT: usize = 1; // NOTE the host stdout may not always be fd 1
-    // static MSG: &'static [u8] = b"main!\n";
+    let ep = efm32hg309f64::Peripherals::take().unwrap();
+    let mut cp = efm32hg309f64::CorePeripherals::take().unwrap();
 
-    // // Signature: fn write(fd: usize, ptr: *const u8, len: usize) -> usize
-    // let r = unsafe { syscall!(WRITE, STDOUT, MSG.as_ptr(), MSG.len()) };
+    init_wdog(&ep.WDOG);
+    init_clock(&ep.CMU);
+    init_gpio(&ep.GPIO);
+    init_rtc(80, &ep.RTC);
+    init_leuart(true, true, 115_200.0, &ep.LEUART0);
+    // init_leuart(true, true, 9600.0, &ep.LEUART0);
+    init_nvic(&mut cp.NVIC);
 
-    let peripherals: efm32hg309f64::Peripherals = efm32hg309f64::Peripherals::take().unwrap();
-    let mut core_peripherals = unsafe { efm32hg309f64::CorePeripherals::steal() };
-    core_peripherals.NVIC.enable(efm32hg309f64::Interrupt::RTC);
-
-    peripherals.WDOG.ctrl.write(|w| unsafe { w.bits(0) });
-
-    init_clock(&peripherals.CMU);
-    let gpio = peripherals.GPIO;
-    gpio.pa_model.modify(|_, w| w.mode0().wiredand());
-    gpio.pa_doutset.write(|w| unsafe { w.doutset().bits(1) });
-
-    init_rtc(&peripherals.RTC);
+    let mut rx_consumer = unsafe { LEUART_RXBUF.split().1 };
+    let mut tx_producer = unsafe { LEUART_TXBUF.split().0 };
 
     loop {
-        cortex_m::asm::wfi();
+        let byte = loop {
+            match rx_consumer.dequeue() {
+                Some(data) => break data,
+                None => cortex_m::asm::wfi(),
+            }
+        };
+
+        if byte.is_ascii_uppercase() {
+            tx_producer.enqueue(byte | 0x20).ok();
+        } else if byte.is_ascii_lowercase() {
+            tx_producer.enqueue((byte & !0x20) + 1).ok();
+        }
+        ep.LEUART0.ien.modify(|_, w| w.txbl().set_bit());
     }
 }
 
-// define the hard fault handler
-exception!(HardFault, hard_fault);
-
-fn hard_fault(_ef: &ExceptionFrame) -> ! {
+exception!(HardFault, hard_fault_handler);
+fn hard_fault_handler(_ef: &ExceptionFrame) -> ! {
     loop {}
 }
 
-// define the hard fault handler
-interrupt!(RTC, rtc);
-
-fn rtc() {
-    let peripherals = unsafe { efm32hg309f64::Peripherals::steal() };
-    let gpio = peripherals.GPIO;
-    let rtc = peripherals.RTC;
+interrupt!(RTC, rtc_handler);
+fn rtc_handler() {
+    let gpio = unsafe { &*efm32hg309f64::GPIO::ptr() };
+    let rtc = unsafe { &*efm32hg309f64::RTC::ptr() };
 
     rtc.ifc
         .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
@@ -110,16 +220,31 @@ fn rtc() {
     gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
 }
 
-// define the default exception handler
-exception!(*, default_handler);
+static mut LEUART_RXBUF: RingBuffer<u8, U256, u8> = RingBuffer::u8();
+static mut LEUART_TXBUF: RingBuffer<u8, U256, u8> = RingBuffer::u8();
 
+interrupt!(LEUART0, leuart0_handler);
+fn leuart0_handler() {
+    let leuart = unsafe { &*efm32hg309f64::LEUART0::ptr() };
+
+    let leuart_if: efm32hg309f64::leuart0::if_::R = leuart.if_.read();
+
+    if leuart_if.txbl().bit_is_set() {
+        let mut tx_consumer = unsafe { LEUART_TXBUF.split().1 };
+        match tx_consumer.dequeue() {
+            Some(byte) => leuart.txdata.write(|w| unsafe { w.txdata().bits(byte) }),
+            None => leuart.ien.modify(|_, w| w.txbl().clear_bit()),
+        }
+    }
+
+    if leuart_if.rxdatav().bit_is_set() {
+        let mut rx_producer = unsafe { LEUART_RXBUF.split().0 };
+        let byte = leuart.rxdata.read().rxdata().bits();
+        rx_producer.enqueue(byte).ok();
+    }
+}
+
+exception!(*, default_handler);
 fn default_handler(_irqn: i16) {
     loop {}
 }
-
-// #[lang = "panic_fmt"]
-// #[no_mangle]
-// #[allow(private_no_mangle_fns)]
-// extern "C" fn panic_fmt() -> ! {
-//     loop {}
-// }

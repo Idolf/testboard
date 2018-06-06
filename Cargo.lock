@@ -9,6 +9,11 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "byteorder"
+version = "1.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "cc"
 version = "1.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -44,6 +49,7 @@ dependencies = [
 [[package]]
 name = "efm32hg309f64"
 version = "0.1.0"
+source = "git+https://github.com/Idolf/efm32hg309f64.git#5a9d2a449040f6bfa6aa9753047b763850a4b381"
 dependencies = [
  "bare-metal 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cortex-m 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -52,122 +58,28 @@ dependencies = [
 ]
 
 [[package]]
-name = "either"
-version = "1.5.0"
+name = "generic-array"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "futures"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
 dependencies = [
- "futures-async-runtime 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-channel 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-core 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-executor 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-io 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-macro-async 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-macro-await 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-sink 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-stable 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-util 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
+ "typenum 1.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "futures-async-runtime"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
-dependencies = [
- "futures-core 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-stable 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
-]
-
-[[package]]
-name = "futures-channel"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
-dependencies = [
- "futures-core 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
-]
-
-[[package]]
-name = "futures-core"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
-
-[[package]]
-name = "futures-executor"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
-dependencies = [
- "futures-channel 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-core 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-util 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
-]
-
-[[package]]
-name = "futures-io"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
-dependencies = [
- "futures-core 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
-]
-
-[[package]]
-name = "futures-macro-async"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
-dependencies = [
- "proc-macro2 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "futures-macro-await"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
-
-[[package]]
-name = "futures-sink"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
-dependencies = [
- "futures-channel 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-core 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
-]
-
-[[package]]
-name = "futures-stable"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
-dependencies = [
- "futures-core 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-executor 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
-]
-
-[[package]]
-name = "futures-util"
-version = "0.2.1"
-source = "git+https://github.com/rust-lang-nursery/futures-rs.git#e9bca8d8dc1d5b466f78928c4169d3a79a00c76c"
-dependencies = [
- "either 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures-channel 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-core 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-io 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "futures-sink 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
-]
-
-[[package]]
-name = "mydevice"
+name = "hash32"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cortex-m 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cortex-m-rt 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "cortex-m-semihosting 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "efm32hg309f64 0.1.0",
- "futures 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)",
- "panic-semihosting 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "heapless"
+version = "0.3.6"
+source = "git+https://github.com/japaric/heapless.git#6ec77ef514620b624d96da6fb7937d44cb3b3574"
+dependencies = [
+ "generic-array 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hash32 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -180,39 +92,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "proc-macro2"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "quote"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "proc-macro2 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "r0"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "syn"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+name = "testboard"
+version = "0.1.0"
 dependencies = [
- "proc-macro2 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cortex-m 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cortex-m-rt 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cortex-m-semihosting 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "efm32hg309f64 0.1.0 (git+https://github.com/Idolf/efm32hg309f64.git)",
+ "heapless 0.3.6 (git+https://github.com/japaric/heapless.git)",
+ "panic-semihosting 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "unicode-xid"
-version = "0.1.0"
+name = "typenum"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -231,27 +129,17 @@ dependencies = [
 [metadata]
 "checksum aligned 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d39da9b88ae1a81c03c9c082b8db83f1d0e93914126041962af61034ab44c4a5"
 "checksum bare-metal 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "517bf6fd0a06665f8a6d094d3a520f1d0a989c3d114470a75a84a39204e69e96"
+"checksum byteorder 1.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "74c0b906e9446b0a2e4f760cdb3fa4b2c48cdc6db8766a845c54b6ff063fd2e9"
 "checksum cc 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)" = "49ec142f5768efb5b7622aebc3fdbdbb8950a4b9ba996393cb76ef7466e8747d"
 "checksum cortex-m 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "93ceb454f8942689dae03a0b1d6b6e866f30acb5358ada9698e71f2728cd4924"
 "checksum cortex-m-rt 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6d5c26952ec2bdfd3c66cddb22cb6432b042ca9ccda55762ebba68b73adbae5a"
 "checksum cortex-m-semihosting 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0b3d0df96d537c4f66dd9f4d1da21d83f9a5917990196925b3603be85e46071e"
-"checksum either 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3be565ca5c557d7f59e7cfcf1844f9e3033650c929c6566f511e8005f205c1d0"
-"checksum futures 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
-"checksum futures-async-runtime 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
-"checksum futures-channel 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
-"checksum futures-core 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
-"checksum futures-executor 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
-"checksum futures-io 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
-"checksum futures-macro-async 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
-"checksum futures-macro-await 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
-"checksum futures-sink 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
-"checksum futures-stable 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
-"checksum futures-util 0.2.1 (git+https://github.com/rust-lang-nursery/futures-rs.git)" = "<none>"
+"checksum efm32hg309f64 0.1.0 (git+https://github.com/Idolf/efm32hg309f64.git)" = "<none>"
+"checksum generic-array 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1591bdacf1a77bdef8af03f638ae9f05e9a7ee7e7de351104c2a014da364a82c"
+"checksum hash32 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "12d790435639c06a7b798af9e1e331ae245b7ef915b92f70a39b4cf8c00686af"
+"checksum heapless 0.3.6 (git+https://github.com/japaric/heapless.git)" = "<none>"
 "checksum panic-semihosting 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "40c8cc147a3c82dd57f35e62d9e65d72cc35b13af67fca486fbc3ae1c2aeebed"
-"checksum proc-macro2 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "1fa93823f53cfd0f5ac117b189aed6cfdfb2cfc0a9d82e956dd7927595ed7d46"
-"checksum quote 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "e44651a0dc4cdd99f71c83b561e221f714912d11af1a4dff0631f923d53af035"
 "checksum r0 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e2a38df5b15c8d5c7e8654189744d8e396bddc18ad48041a500ce52d6948941f"
-"checksum syn 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6dfd71b2be5a58ee30a6f8ea355ba8290d397131c00dfa55c3d34e6e13db5101"
-"checksum unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc72304796d0818e357ead4e000d19c9c174ab23dc11093ac919054d20a6a7fc"
+"checksum typenum 1.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "612d636f949607bdf9b123b4a6f6d966dedf3ff669f7f045890d3a4a73948169"
 "checksum vcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "45c297f0afb6928cd08ab1ff9d95e99392595ea25ae1b5ecf822ff8764e57a0d"
 "checksum volatile-register 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0d67cb4616d99b940db1d6bd28844ff97108b498a6ca850e5b6191a532063286"
