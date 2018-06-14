@@ -20,13 +20,9 @@ use heapless::RingBuffer;
 
 use rt::ExceptionFrame;
 
-fn get_hfrco_calib_band_21() -> u8 {
-    const HFRCO_CALIB_BAND_21: usize = 0x0fe081e0;
-    unsafe { *(HFRCO_CALIB_BAND_21 as *const u8) }
-}
-
 fn init_wdog(wdog: &efm32hg309f64::wdog::RegisterBlock) {
-    wdog.ctrl.write(|w| unsafe { w.bits(0) });
+    // Disable the watchdog
+    wdog.ctrl.reset();
 }
 
 fn init_clock(cmu: &efm32hg309f64::cmu::RegisterBlock) {
@@ -44,6 +40,10 @@ fn init_clock(cmu: &efm32hg309f64::cmu::RegisterBlock) {
     //
     // The lfrco does not need calibration; it's reset value is set to the correct calibration
     // automatically
+    fn get_hfrco_calib_band_21() -> u8 {
+        const HFRCO_CALIB_BAND_21: usize = 0x0fe081e0;
+        unsafe { *(HFRCO_CALIB_BAND_21 as *const u8) }
+    }
     cmu.hfrcoctrl
         .write(|w| unsafe { w.band()._21mhz().tuning().bits(get_hfrco_calib_band_21()) });
 
@@ -100,20 +100,31 @@ fn init_leuart(
     // Hz clock (such as the lfrco). Actually a better value would be 617 or 618.
     //
     // The fact that the lower bits must be zero is also noticeable in the svd file. For a while we
-    // tried to set w.div().bits(616), which is equivalent to w.bits(616 * 8) -- which obviously did
-    // not go well.
+    // tried to set w.div().bits(616), which is equivalent to w.bits(616 << 3) -- which obviously
+    // did not go well.
     //
     // Here we are using a derived fomula for finding the correct value of clkdiv from the baud rate
-    // assuming that we are using the hfrco set tup 21MHz. Additionally use the w.div().bits(...)
+    // assuming that we are using the hfrco set up to 21MHz. Additionally use the w.div().bits(...)
     // instead of w.bits(...), so if you try to port this to something else, make sure to shift this
     // up accordingly.
-
+    //
+    // Using this setup we can support all the following baud ranges:
+    // - At most 2.0% error: 4_989 - 669_642 baud
+    // - At most 1.5% error: 5_014 - 626_866 baud
+    // - At most 1.0% error: 5_039 - 424_242 baud
+    // - At most 0.5% error: 5_064 - 211_055 baud
     let hfcoreclk_prescaler = 4.0;
     let leuart_prescaler = 8.0;
     let hf_frequency = 21_000_000.0;
     let source_clock_frequency = hf_frequency / hfcoreclk_prescaler / leuart_prescaler;
     let scale_factor: f32 = 32.0 * (source_clock_frequency / baud_rate - 1.0);
-    let scale_factor = (scale_factor + 0.5) as u16;
+    let scale_factor = if scale_factor < 0.0 {
+        0
+    } else if scale_factor >= 0b111111111111 as f32 {
+        0b111111111111
+    } else {
+        (scale_factor + 0.5) as u16
+    };
 
     leuart
         .clkdiv
@@ -135,10 +146,6 @@ fn init_leuart(
         w
     });
 
-    leuart
-        .ctrl
-        .write(|w| w.stopbits().set_bit().databits().clear_bit());
-
     leuart.cmd.write(|w| {
         // Clear rx and tx buffers
         w.clearrx().set_bit().cleartx().set_bit();
@@ -155,12 +162,15 @@ fn init_leuart(
         w
     });
 
+    // Enable interrupts on received data
     leuart.ien.write(|w| w.rxdatav().set_bit());
 }
 
 fn init_gpio(gpio: &efm32hg309f64::gpio::RegisterBlock) {
-    gpio.pa_model.modify(|_, w| w.mode0().wiredand());
-    gpio.pa_doutset.write(|w| unsafe { w.doutset().bits(1) });
+    // Set the mode for PA0 to pushpull
+    gpio.pa_model.modify(|_, w| w.mode0().pushpull());
+
+    // Set the mode for PB13 to pushpull and for PB14 to input.
     gpio.pb_modeh
         .modify(|_, w| w.mode13().pushpull().mode14().input());
 }
@@ -180,7 +190,7 @@ fn main() -> ! {
     init_clock(&ep.CMU);
     init_gpio(&ep.GPIO);
     init_rtc(80, &ep.RTC);
-    init_leuart(true, true, 115_200.0, &ep.LEUART0);
+    init_leuart(true, true, 128_000.0, &ep.LEUART0);
     // init_leuart(true, true, 9600.0, &ep.LEUART0);
     init_nvic(&mut cp.NVIC);
 
