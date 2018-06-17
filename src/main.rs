@@ -16,9 +16,12 @@ extern crate heapless;
 //extern crate panic_semihosting;
 
 pub mod leuart;
+pub mod gpio;
 
 use core::panic::*;
 use rt::ExceptionFrame;
+use gpio::*;
+use leuart::*;
 
 #[panic_implementation]
 #[no_mangle]
@@ -236,15 +239,6 @@ fn init_usb(usb: &efm32hg309f64::usb::RegisterBlock) {
     });
 }
 
-fn init_gpio(gpio: &efm32hg309f64::gpio::RegisterBlock) {
-    // Set the mode for PA0 to pushpull
-    gpio.pa_model.modify(|_, w| w.mode0().pushpull());
-
-    // Set the mode for PB13 to pushpull and for PB14 to input.
-    gpio.pb_modeh
-        .modify(|_, w| w.mode13().pushpull().mode14().input());
-}
-
 fn init_nvic(nvic: &mut cortex_m::peripheral::NVIC) {
     nvic.enable(efm32hg309f64::Interrupt::RTC);
     nvic.enable(efm32hg309f64::Interrupt::LEUART0);
@@ -259,17 +253,22 @@ fn main() -> ! {
 
     init_wdog(&ep.WDOG);
     init_clock(&ep.CMU);
-    init_gpio(&ep.GPIO);
     init_rtc(80, &ep.RTC);
-    leuart::init_leuart(true, true, 9600.0, &ep.LEUART0);
-    // init_leuart(true, true, 9600.0, &ep.LEUART0);
-    init_usb(&ep.USB);
+
+    let gpio = gpio::Gpio::init_gpio();
+    let mut pins = gpio.pins();
+
+    pins.pa0.mode(gpio::PinMode::PushPull);
+    pins.pa0.set();
+
+    let leuart = Leuart::location0(Some(pins.pb13), Some(pins.pb14));
+    leuart.baud_rate(9600.0);
+
+//    init_usb(&ep.USB);
     init_nvic(&mut cp.NVIC);
 
     loop {
-        //        let mut byte = [0];
-        //        leuart::leuart_read(&mut byte);
-        leuart::write(b"Hello!\n");
+        leuart.write(b"Hello!\n");
     }
 }
 
@@ -280,13 +279,12 @@ fn hard_fault_handler(_ef: &ExceptionFrame) -> ! {
 
 interrupt!(RTC, rtc_handler);
 fn rtc_handler() {
-    let gpio = unsafe { &*efm32hg309f64::GPIO::ptr() };
     let rtc = unsafe { &*efm32hg309f64::RTC::ptr() };
 
     rtc.ifc
         .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
 
-    // gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
+//    gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
 }
 
 static mut counter: u32 = 0;
@@ -330,7 +328,7 @@ fn usb_handler() {
         counter += 1;
         if counter > 0x100000 {
             counter = 0;
-            gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
+            gpio.pa_douttgl.write(|w| w.douttgl().bits(1) );
         }
     }
 }
