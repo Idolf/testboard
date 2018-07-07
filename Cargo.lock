@@ -51,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "generic-array"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "typenum 1.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -70,13 +70,18 @@ name = "heapless"
 version = "0.3.6"
 source = "git+https://github.com/japaric/heapless.git#6ec77ef514620b624d96da6fb7937d44cb3b3574"
 dependencies = [
- "generic-array 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "generic-array 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hash32 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "r0"
 version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "static_assertions"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -87,6 +92,8 @@ dependencies = [
  "cortex-m-rt 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "efm32hg309f64 0.1.0 (git+https://github.com/Idolf/efm32hg309f64.git)",
  "heapless 0.3.6 (git+https://github.com/japaric/heapless.git)",
+ "static_assertions 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "typenum 1.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -115,10 +122,11 @@ dependencies = [
 "checksum cortex-m 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "93ceb454f8942689dae03a0b1d6b6e866f30acb5358ada9698e71f2728cd4924"
 "checksum cortex-m-rt 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6d5c26952ec2bdfd3c66cddb22cb6432b042ca9ccda55762ebba68b73adbae5a"
 "checksum efm32hg309f64 0.1.0 (git+https://github.com/Idolf/efm32hg309f64.git)" = "<none>"
-"checksum generic-array 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1591bdacf1a77bdef8af03f638ae9f05e9a7ee7e7de351104c2a014da364a82c"
+"checksum generic-array 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8107dafa78c80c848b71b60133954b4a58609a3a1a5f9af037ecc7f67280f369"
 "checksum hash32 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "12d790435639c06a7b798af9e1e331ae245b7ef915b92f70a39b4cf8c00686af"
 "checksum heapless 0.3.6 (git+https://github.com/japaric/heapless.git)" = "<none>"
 "checksum r0 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e2a38df5b15c8d5c7e8654189744d8e396bddc18ad48041a500ce52d6948941f"
+"checksum static_assertions 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "c19be23126415861cb3a23e501d34a708f7f9b2183c5252d690941c2e69199d5"
 "checksum typenum 1.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "612d636f949607bdf9b123b4a6f6d966dedf3ff669f7f045890d3a4a73948169"
 "checksum vcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "45c297f0afb6928cd08ab1ff9d95e99392595ea25ae1b5ecf822ff8764e57a0d"
 "checksum volatile-register 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0d67cb4616d99b940db1d6bd28844ff97108b498a6ca850e5b6191a532063286"
