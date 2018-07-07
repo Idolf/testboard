@@ -1,5 +1,6 @@
 use device_information;
 use efm32hg309f64;
+use frequencies;
 
 clock_source!(
     /// This type represents ownership over the `HFRCO`, the High-Frequency RC Oscillator, which can
@@ -26,7 +27,7 @@ macro_rules! hfrco_frequency {
         /// This function will block until the `HFRCO` as ready, by waiting for the `HFRCORDY` bit
         /// to be set in `CMU_STATUS`.
         #[inline]
-        pub fn $meth(self) -> HfRco<super::$freq> {
+        pub fn $meth(self) -> HfRco<frequencies::$freq> {
             let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
             cmu.hfrcoctrl.write(|w| {
                 unsafe {
@@ -76,7 +77,7 @@ macro_rules! auxhfrco_frequency {
         /// This function will block until the `AUXHFRCO` as ready, by waiting for the `AUXHFRCORDY`
         /// bit to be set in `CMU_STATUS`.
         #[inline]
-        pub fn $meth(self) -> AuxHfRco<super::$freq> {
+        pub fn $meth(self) -> AuxHfRco<frequencies::$freq> {
             let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
             cmu.auxhfrcoctrl.write(|w| {
                 unsafe {

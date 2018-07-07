@@ -1,4 +1,5 @@
 use efm32hg309f64;
+use frequencies;
 
 clock_source!(
     /// This type represents ownership over the `LFRCO`, the Low-Frequency RC Oscillator, which
@@ -23,7 +24,7 @@ impl<Frequency> LfRco<Frequency> {
     /// This function will block until the `LFRCO` as ready, by waiting for the `LFRCORDY`
     /// bit to be set in `CMU_STATUS`.
     #[inline]
-    pub fn enable_32768hz(self) -> LfRco<super::Hz32768> {
+    pub fn enable_32768hz(self) -> LfRco<frequencies::Hz32768> {
         let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
 
         cmu.oscencmd.write(|w| w.lfrcoen().set_bit());

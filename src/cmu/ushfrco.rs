@@ -1,5 +1,6 @@
 use device_information;
 use efm32hg309f64;
+use frequencies;
 use typenum;
 
 clock_source!(
@@ -27,7 +28,7 @@ macro_rules! ushfrco_frequency {
         /// This function will block until the `USHFRCO` as ready, by waiting for the `USHFRCORDY`
         /// bit to be set in `CMU_STATUS`.
         #[inline]
-        pub fn $meth(self) -> UsHfRco<super::$freq> {
+        pub fn $meth(self) -> UsHfRco<frequencies::$freq> {
             let (coarse, fine) = device_information::$calib();
 
             let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
@@ -68,8 +69,8 @@ impl<'source, Source, Division> UsHfRcoDiv<'source, Source, Division> {
     #[inline]
     pub fn enable_div1<'new_source>(
         self,
-        ushfrco: &'new_source UsHfRco<super::Mhz24>,
-    ) -> UsHfRcoDiv<'new_source, UsHfRco<super::Mhz24>, typenum::U1> {
+        ushfrco: &'new_source UsHfRco<frequencies::Mhz24>,
+    ) -> UsHfRcoDiv<'new_source, UsHfRco<frequencies::Mhz24>, typenum::U1> {
         let _ = ushfrco;
         let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
         cmu.ushfrcoconf.modify(|_, w| w.ushfrcodiv2dis().set_bit());

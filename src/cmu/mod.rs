@@ -1,6 +1,8 @@
-use core::marker::PhantomData;
+// See section 11.3 in the EFM32HF-RM for an overview of these clocks
+
+use core::mem;
 use efm32hg309f64;
-use frequencies::*;
+use frequencies;
 
 #[macro_use]
 mod macros;
@@ -33,10 +35,11 @@ pub use self::lfrco::{LfRco, ULfRco};
 pub use self::ushfrco::{UsHfRco, UsHfRcoDiv};
 pub use self::xo::{HfXo, LfXo};
 
-pub struct Cmu(PhantomData<&'static efm32hg309f64::CMU>);
-
+/// State for clocks that are turned off
 pub struct Off;
-pub struct On;
+/// State for clocks that are already running but for which it would be inconvenient to put their
+/// actual state in the `InitialCmuState`.
+pub struct Uninitialized;
 
 pub trait Clock {
     /// The frequency of the clock.
@@ -45,4 +48,56 @@ pub trait Clock {
     /// Locks in the state of the clock, so it will not be changed again nor will it be disabled on
     /// drop.
     fn finalize(self) -> &'static Self;
+}
+
+pub struct InitialCmuState {
+    pub hfclk: HfClk<'static, Uninitialized, Uninitialized>,
+    pub hfcoreclk: HfCoreClk<'static, Uninitialized, Uninitialized>,
+    pub hfperclk: HfPerClk<'static, Uninitialized, Uninitialized>,
+
+    pub hfcoreclkaes: HfCoreClkAes<'static, Off>,
+    pub hfcoreclkdma: HfCoreClkDma<'static, Off>,
+    pub hfcoreclkusb: HfCoreClkUsb<'static, Off>,
+    pub hfcoreclklediv: HfCoreClkLeDiv<'static, Off, Off>,
+    pub hfcoreclkusbc: HfCoreClkUsbC<'static, Off>,
+
+    pub hfperclkacmp0: HfPerClkAcmp0<'static, Off>,
+    pub hfperclkadc0: HfPerClkAdc0<'static, Off>,
+    pub hfperclkgpio: HfPerClkGpio<'static, Off>,
+    pub hfperclki2c0: HfPerClkI2c0<'static, Off>,
+    pub hfperclkidac0: HfPerClkIdac0<'static, Off>,
+    pub hfperclkprs: HfPerClkPrs<'static, Off>,
+    pub hfperclktimer0: HfPerClkTimer0<'static, Off>,
+    pub hfperclktimer1: HfPerClkTimer1<'static, Off>,
+    pub hfperclktimer2: HfPerClkTimer2<'static, Off>,
+    pub hfperclkusart0: HfPerClkUsart0<'static, Off>,
+    pub hfperclkusart1: HfPerClkUsart1<'static, Off>,
+    pub hfperclkvcmp: HfPerClkVcmp<'static, Off>,
+
+    pub lfaclk: LfaClk<'static, Off>,
+    pub lfaclkrtc: LfaClkRtc<'static, Off, Off>,
+    pub lfbclk: LfbClk<'static, Off>,
+    pub lfbclkleuart0: LfbClkLeuart0<'static, Off, Off>,
+    pub lfcclk: LfcClk<'static, Off>,
+    pub lfcclkusble: LfcClkUsbLe<'static, Off>,
+
+    pub hfrco: HfRco<frequencies::Mhz14>,
+    pub auxhfrco: AuxHfRco<Off>,
+    pub lfrco: LfRco<Off>,
+    pub ulfrco: ULfRco<frequencies::Hz1000>,
+    pub ushfrco: UsHfRco<Off>,
+    pub ushfrcodiv: UsHfRcoDiv<'static, Off, Off>,
+    pub hfxo: HfXo<Off>,
+    pub lfxo: LfXo<Off>,
+}
+
+impl InitialCmuState {
+    /// Gets the initial cmu state.
+    ///
+    /// # Safety
+    /// This function assumes that the `CMU` given in the argument is in its initial state.
+    pub unsafe fn get_initial_state(cmu: efm32hg309f64::CMU) -> InitialCmuState {
+        let _ = cmu;
+        mem::transmute::<(), InitialCmuState>(())
+    }
 }
