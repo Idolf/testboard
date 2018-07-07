@@ -1,5 +1,3 @@
-pub(crate) static GLOBAL_UNIT_VALUE: () = ();
-
 macro_rules! clock_source {
     ($(#[$attr:meta])* $name:ident) => {
         $(#[$attr])*
@@ -10,13 +8,15 @@ macro_rules! clock_source {
 
         impl<Frequency: ::typenum::Unsigned> ::cmu::Clock for $name<Frequency> {
             const FREQUENCY: f64 = Frequency::U64 as f64;
+        }
 
+        impl<Frequency> ::devices::Device for $name<Frequency> {}
+
+        impl<Frequency: 'static> ::devices::FinalizeDevice for $name<Frequency> {
             #[inline]
-            fn finalize(self) -> &'static $name<Frequency> {
+            fn finalize(self) -> ::devices::Finalized<$name<Frequency>> {
                 assert_eq_size!(Self, ());
-                ::core::mem::forget(self);
-                let result: &'static () = &::cmu::macros::GLOBAL_UNIT_VALUE;
-                unsafe { ::core::mem::transmute(result) }
+                ::devices::Finalized::new(self)
             }
         }
 
@@ -53,13 +53,15 @@ macro_rules! clock_switch {
 
         impl<'source, Source: ::cmu::Clock> ::cmu::Clock for $name<'source, Source> {
             const FREQUENCY: f64 = Source::FREQUENCY;
+        }
 
+        impl<'source, Source> ::devices::Device for $name<'source, Source> {}
+
+        impl<Source: 'static> ::devices::FinalizeDevice for $name<'static, Source> {
             #[inline]
-            fn finalize(self) -> &'static $name<'source, Source> {
+            fn finalize(self) -> ::devices::Finalized<$name<'static, Source>> {
                 assert_eq_size!(Self, ());
-                ::core::mem::forget(self);
-                let result: &'static () = &::cmu::macros::GLOBAL_UNIT_VALUE;
-                unsafe { ::core::mem::transmute(result) }
+                ::devices::Finalized::new(self)
             }
         }
 
@@ -100,13 +102,17 @@ macro_rules! clock_switch_and_divide {
             for $name<'source, Source, Division>
         {
             const FREQUENCY: f64 = Source::FREQUENCY / (Division::U64 as f64);
+        }
 
+        impl<'source, Source, Division> ::devices::Device
+            for $name<'source, Source, Division> {}
+
+        impl<Source: 'static, Division: 'static> ::devices::FinalizeDevice
+            for $name<'static, Source, Division> {
             #[inline]
-            fn finalize(self) -> &'static $name<'source, Source, Division> {
+            fn finalize(self) -> ::devices::Finalized<$name<'static, Source, Division>> {
                 assert_eq_size!(Self, ());
-                ::core::mem::forget(self);
-                let result: &'static () = &::cmu::macros::GLOBAL_UNIT_VALUE;
-                unsafe { ::core::mem::transmute(result) }
+                ::devices::Finalized::new(self)
             }
         }
 

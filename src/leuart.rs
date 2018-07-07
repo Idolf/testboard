@@ -1,11 +1,11 @@
 use cortex_m;
 use efm32hg309f64;
 
+use gpio::*;
 use heapless::consts::*;
 use heapless::RingBuffer;
-use gpio::*;
 
-pub struct Leuart { }
+pub struct Leuart {}
 
 static mut LEUART_RXBUF: RingBuffer<u8, U256, u8> = RingBuffer::u8();
 static mut LEUART_TXBUF: RingBuffer<u8, U256, u8> = RingBuffer::u8();
@@ -22,25 +22,25 @@ impl Leuart {
 
         let leuart = Leuart {};
 
-        tx.map(|mut pin| { 
+        tx.map(|mut pin| {
             pin.mode(PinMode::PushPull);
-            regs.route.modify(|_, w| w.txpen().set_bit() );
-            regs.cmd.write(|w| w.txen().set_bit() );
+            regs.route.modify(|_, w| w.txpen().set_bit());
+            regs.cmd.write(|w| w.txen().set_bit());
         });
 
-        rx.map(|mut pin| { 
+        rx.map(|mut pin| {
             pin.mode(PinMode::Input);
-            regs.route.modify(|_, w| w.rxpen().set_bit() );
-            regs.cmd.write(|w| w.rxen().set_bit() );
+            regs.route.modify(|_, w| w.rxpen().set_bit());
+            regs.cmd.write(|w| w.rxen().set_bit());
         });
 
         regs.cmd.write(|w| {
             // Clear rx and tx buffers
             w.clearrx().set_bit().cleartx().set_bit()
         });
-        
+
         // two stopbits
-        regs.ctrl.modify(|_, w| w.stopbits().set_bit() );
+        regs.ctrl.modify(|_, w| w.stopbits().set_bit());
 
         // Enable interrupts on received data
         regs.ien.write(|w| w.rxdatav().set_bit());
@@ -48,7 +48,7 @@ impl Leuart {
         leuart
     }
 
-    pub fn baud_rate(&self, baud_rate : f32) {
+    pub fn baud_rate(&self, baud_rate: f32) {
         // The formulas in EFM32-HF-RM 17.3.3 says how to calculate the value of leuart.clkdiv from the
         // desired baud rate. What it does not say is that the 3 lower bits of leuart.clkdiv must be 0
         // (this is specified in 17.5.4).
@@ -85,14 +85,11 @@ impl Leuart {
 
         let regs = unsafe { &*efm32hg309f64::LEUART0::ptr() };
 
-        regs.clkdiv.write(|w| unsafe {
-            w.div().bits(scale_factor)
-        });
-
+        regs.clkdiv.write(|w| unsafe { w.div().bits(scale_factor) });
     }
 
-    pub fn write(&self, buf : &[u8]){
-        let mut tx_producer = unsafe { LEUART_TXBUF.split().0 };
+    pub fn write(&self, buf: &[u8]) {
+        let mut tx_producer = unsafe { &mut LEUART_TXBUF };
         let regs = unsafe { &*efm32hg309f64::LEUART0::ptr() };
 
         for byte in buf {
@@ -106,12 +103,15 @@ impl Leuart {
         });
     }
 
-    pub fn read(&self, buf : &mut [u8]){
-        let mut rx_consumer = unsafe { LEUART_RXBUF.split().1 };
+    pub fn read(&self, buf: &mut [u8]) {
+        let mut rx_consumer = unsafe { &mut LEUART_RXBUF };
         for ptr in buf.iter_mut() {
             loop {
                 match rx_consumer.dequeue() {
-                    Some(byte) => {*ptr = byte; break }
+                    Some(byte) => {
+                        *ptr = byte;
+                        break;
+                    }
                     None => cortex_m::asm::wfi(),
                 }
             }
@@ -119,14 +119,13 @@ impl Leuart {
     }
 }
 
-
 interrupt!(LEUART0, leuart0_handler);
 fn leuart0_handler() {
     let regs = unsafe { &*efm32hg309f64::LEUART0::ptr() };
     let leuart_if: efm32hg309f64::leuart0::if_::R = regs.if_.read();
 
     if leuart_if.txbl().bit_is_set() {
-        let mut tx_consumer = unsafe { LEUART_TXBUF.split().1 };
+        let mut tx_consumer = unsafe { &mut LEUART_TXBUF };
         match tx_consumer.dequeue() {
             Some(byte) => regs.txdata.write(|w| unsafe { w.txdata().bits(byte) }),
             None => regs.ien.modify(|_, w| w.txbl().clear_bit()),
@@ -134,10 +133,9 @@ fn leuart0_handler() {
     }
 
     if leuart_if.rxdatav().bit_is_set() {
-        let mut rx_producer = unsafe { LEUART_RXBUF.split().0 };
+        let mut rx_producer = unsafe { &mut LEUART_RXBUF };
         let byte = regs.rxdata.read().rxdata().bits();
         rx_producer.enqueue(byte).ok();
         cortex_m::asm::sev();
     }
 }
-

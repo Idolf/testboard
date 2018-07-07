@@ -19,12 +19,13 @@ extern crate typenum;
 
 pub mod cmu;
 pub mod device_information;
+pub mod devices;
 pub mod frequencies;
 pub mod gpio;
 pub mod leuart;
 
-use cmu::Clock;
 use core::panic::*;
+use devices::FinalizeDevice;
 use gpio::*;
 use leuart::*;
 use rt::ExceptionFrame;
@@ -53,26 +54,26 @@ fn init_cmu(cmu: cmu::InitialCmuState) {
     let ushfrco = cmu.ushfrco.enable_48mhz().finalize();
 
     // Initialize the main clocks
-    let hfclk = cmu.hfclk.div1().hfrco(hfrco).finalize();
-    let hfcoreclk = cmu.hfcoreclk.div1(hfclk).finalize();
-    let hfcoreclklediv = cmu.hfcoreclklediv.enable_div4(hfcoreclk).finalize();
-    let hfperclk = cmu.hfperclk.enable_div1(hfclk).finalize();
+    let hfclk = cmu.hfclk.div1().hfrco(&hfrco).finalize();
+    let hfcoreclk = cmu.hfcoreclk.div1(&hfclk).finalize();
+    let hfcoreclklediv = cmu.hfcoreclklediv.enable_div4(&hfcoreclk).finalize();
+    let hfperclk = cmu.hfperclk.enable_div1(&hfclk).finalize();
 
     // Initialize the three low-frequency clocks
-    let lfa = cmu.lfaclk.enable_lfrco(lfrco).finalize();
-    let lfb = cmu.lfbclk.enable_hfcoreclklediv(hfcoreclklediv).finalize();
-    let lfc = cmu.lfcclk.enable_lfrco(lfrco).finalize();
+    let lfa = cmu.lfaclk.enable_lfrco(&lfrco).finalize();
+    let lfb = cmu.lfbclk.enable_hfcoreclklediv(&hfcoreclklediv).finalize();
+    let lfc = cmu.lfcclk.enable_lfrco(&lfrco).finalize();
 
     // Initialize the usb clocks
-    let _usb = cmu.hfcoreclkusb.enable(hfcoreclk).finalize();
-    let _usbc = cmu.hfcoreclkusbc.enable_ushfrco(ushfrco).finalize();
-    let _usble = cmu.lfcclkusble.enable(lfc).finalize();
+    let _usb = cmu.hfcoreclkusb.enable(&hfcoreclk).finalize();
+    let _usbc = cmu.hfcoreclkusbc.enable_ushfrco(&ushfrco).finalize();
+    let _usble = cmu.lfcclkusble.enable(&lfc).finalize();
 
     // Initialize peripherals
-    let _gpio = cmu.hfperclkgpio.enable(hfperclk).finalize();
-    let _dma = cmu.hfcoreclkdma.enable(hfcoreclk).finalize();
-    let _rtc = cmu.lfaclkrtc.enable_div1(lfa).finalize();
-    let _leuart = cmu.lfbclkleuart0.enable_div8(lfb).finalize();
+    let _gpio = cmu.hfperclkgpio.enable(&hfperclk).finalize();
+    let _dma = cmu.hfcoreclkdma.enable(&hfcoreclk).finalize();
+    let _rtc = cmu.lfaclkrtc.enable_div1(&lfa).finalize();
+    let _leuart = cmu.lfbclkleuart0.enable_div8(&lfb).finalize();
 }
 
 fn init_rtc(ms: u32, rtc: &efm32hg309f64::rtc::RegisterBlock) {

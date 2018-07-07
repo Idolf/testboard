@@ -1,4 +1,33 @@
-// See section 11.3 in the EFM32HF-RM for an overview of these clocks
+//! This module contains a nicer API for interacting with the clocks that are part of the CMU. For
+//! an overview of these clocks, see section 11.3 in EFM32HF-RM.pdf.
+//!
+//! With only a few exceptions, the types in this modules corresponds directly to that diagram. The
+//! exceptions are:
+//!
+//! * The clock corresponding to the type `HfCoreClkLeDiv` is not named in the diagram. It is the
+//! clock that comes out of the box with the title "/2 or /4" that comes after `HFCORECLKLE`. Other
+//! places in the manual refer to this clock as `HFCORECLKLEDIV2`, however this name is misleading
+//! as the divisor can either be divided by 2 or 4.
+//!
+//! * The clock corresponding to the type `UsHfRcoDiv` is similarly not named. It is the clock that
+//! comes out of the box with the title "/1 or /2" that flows into the `HFCLK`. In other places in
+//! the manual this clock is referred to as `USHFRCODIV2` though this is again misleading as the
+//! divisor can be either 1 or 2.
+//!
+//! * The clock `HFCORECLKLE` has no corresponding type. If a type was created, it's only
+//! functionality would be to turn it on or off, and it would always be used together with the
+//! `HfCoreClkLeDiv`. Instead the ability to turn on and off the `HFCORECLKLE` has been put inside
+//! the `HfCoreClkLeDiv` type.
+//!
+//! * The clock named `HFCORECLKCM0` is the clock for running the CPU itself. It was not deemed
+//! useful to represent it here.
+//!
+//! * The clocks named name `PCNTnCLK` in the diagram (i.e. only `PCNT0CLK` since there is only one
+//! pulse counter) have not been represented yet. Doing so might be useful but has not yet
+//! implemented.
+//!
+//! * The clock named name `WDOGCLK` has not been represented yet. Doing so might be useful but has
+//! not yet implemented.
 
 use core::mem;
 use efm32hg309f64;
@@ -44,10 +73,6 @@ pub struct Uninitialized;
 pub trait Clock {
     /// The frequency of the clock.
     const FREQUENCY: f64;
-
-    /// Locks in the state of the clock, so it will not be changed again nor will it be disabled on
-    /// drop.
-    fn finalize(self) -> &'static Self;
 }
 
 pub struct InitialCmuState {
