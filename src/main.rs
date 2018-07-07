@@ -63,6 +63,7 @@ fn init_cmu(cmu: cmu::InitialCmuState) {
     let lfb = cmu.lfbclk.enable_hfcoreclklediv(hfcoreclklediv).finalize();
     let lfc = cmu.lfcclk.enable_lfrco(lfrco).finalize();
 
+    // Initialize the usb clocks
     let _usb = cmu.hfcoreclkusb.enable(hfcoreclk).finalize();
     let _usbc = cmu.hfcoreclkusbc.enable_ushfrco(ushfrco).finalize();
     let _usble = cmu.lfcclkusble.enable(lfc).finalize();
