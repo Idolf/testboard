@@ -20,9 +20,12 @@ extern crate typenum;
 pub mod cmu;
 pub mod device_information;
 pub mod frequencies;
+pub mod gpio;
 pub mod leuart;
 
 use core::panic::*;
+use gpio::*;
+use leuart::*;
 use rt::ExceptionFrame;
 
 #[panic_implementation]
@@ -241,15 +244,6 @@ fn init_usb(usb: &efm32hg309f64::usb::RegisterBlock) {
     });
 }
 
-fn init_gpio(gpio: &efm32hg309f64::gpio::RegisterBlock) {
-    // Set the mode for PA0 to pushpull
-    gpio.pa_model.modify(|_, w| w.mode0().pushpull());
-
-    // Set the mode for PB13 to pushpull and for PB14 to input.
-    gpio.pb_modeh
-        .modify(|_, w| w.mode13().pushpull().mode14().input());
-}
-
 fn init_nvic(nvic: &mut cortex_m::peripheral::NVIC) {
     nvic.enable(efm32hg309f64::Interrupt::RTC);
     nvic.enable(efm32hg309f64::Interrupt::LEUART0);
@@ -264,17 +258,22 @@ fn main() -> ! {
 
     init_wdog(&ep.WDOG);
     init_clock(&ep.CMU);
-    init_gpio(&ep.GPIO);
     init_rtc(80, &ep.RTC);
-    leuart::init_leuart(true, true, 9600.0, &ep.LEUART0);
-    // init_leuart(true, true, 9600.0, &ep.LEUART0);
-    init_usb(&ep.USB);
+
+    let gpio = gpio::Gpio::init_gpio();
+    let mut pins = gpio.pins();
+
+    pins.pa0.mode(gpio::PinMode::PushPull);
+    pins.pa0.set();
+
+    let leuart = Leuart::location0(Some(pins.pb13), Some(pins.pb14));
+    leuart.baud_rate(9600.0);
+
+    //    init_usb(&ep.USB);
     init_nvic(&mut cp.NVIC);
 
     loop {
-        //        let mut byte = [0];
-        //        leuart::leuart_read(&mut byte);
-        leuart::write(b"Hello!\n");
+        leuart.write(b"Hello!\n");
     }
 }
 
@@ -285,58 +284,59 @@ fn hard_fault_handler(_ef: &ExceptionFrame) -> ! {
 
 interrupt!(RTC, rtc_handler);
 fn rtc_handler() {
-    let gpio = unsafe { &*efm32hg309f64::GPIO::ptr() };
     let rtc = unsafe { &*efm32hg309f64::RTC::ptr() };
 
     rtc.ifc
         .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
 
-    gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
+    //    gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
 }
 
-// enum ControlState {
-//     WaitSetup,
-//     InData,
-//     OutData,
-//     LastInData,
-//     WaitStatusIn,
-//     WaitStatusOut,
-//     Stalled,
-// }
-// static mut USB_STATE: ControlState = ControlState::WaitSetup;
+static mut counter: u32 = 0;
 
-// interrupt!(USB, usb_handler);
-// fn usb_handler() {
-//     let gpio = unsafe { &*efm32hg309f64::GPIO::ptr() };
-//     let usb: &efm32hg309f64::usb::RegisterBlock = unsafe { &*efm32hg309f64::USB::ptr() };
+enum ControlState {
+    WaitSetup,
+    InData,
+    OutData,
+    LastInData,
+    WaitStatusIn,
+    WaitStatusOut,
+    Stalled,
+}
+static mut USB_STATE: ControlState = ControlState::WaitSetup;
 
-//     let intsts = usb.gintsts.read();
+interrupt!(USB, usb_handler);
+fn usb_handler() {
+    let gpio = unsafe { &*efm32hg309f64::GPIO::ptr() };
+    let usb: &efm32hg309f64::usb::RegisterBlock = unsafe { &*efm32hg309f64::USB::ptr() };
 
-//     if intsts.usbrst().bit_is_set() {
-//         usb.gintsts.write(|w| w.usbrst().set_bit());
+    let intsts = usb.gintsts.read();
 
-//         const DEVADDR0: u8 = 0;
-//         usb.dcfg
-//             .modify(|_, w| unsafe { w.devaddr().bits(DEVADDR0) });
-//     }
+    if intsts.usbrst().bit_is_set() {
+        usb.gintsts.write(|w| w.usbrst().set_bit());
 
-//     if intsts.enumdone().bit_is_set() {
-//         usb.gintsts.write(|w| w.enumdone().set_bit());
-//         unsafe {
-//             USB_STATE = ControlState::WaitSetup;
-//         }
-//     }
-//     // rtc.ifc
-//     //     .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
+        const DEVADDR0: u8 = 0;
+        usb.dcfg
+            .modify(|_, w| unsafe { w.devaddr().bits(DEVADDR0) });
+    }
 
-//     unsafe {
-//         counter += 1;
-//         if counter > 0x100000 {
-//             counter = 0;
-//             gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
-//         }
-//     }
-// }
+    if intsts.enumdone().bit_is_set() {
+        usb.gintsts.write(|w| w.enumdone().set_bit());
+        unsafe {
+            USB_STATE = ControlState::WaitSetup;
+        }
+    }
+    // rtc.ifc
+    //     .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
+
+    unsafe {
+        counter += 1;
+        if counter > 0x100000 {
+            counter = 0;
+            gpio.pa_douttgl.write(|w| w.douttgl().bits(1));
+        }
+    }
+}
 
 exception!(*, default_handler);
 fn default_handler(_irqn: i16) {
