@@ -4,6 +4,11 @@ use efm32hg309f64;
 clock_source!(
     /// This type represents ownership over the `HFRCO`, the High-Frequency RC Oscillator, which can
     /// oscillate at 1-21MHz.
+    ///
+    /// # Warning
+    /// The `HfRco` should not be disabled or dropped unless a different clock has been configured
+    /// for the `HFCLK`, as the CPU clock is tied to the `HFCORECLK` which depends on it. Doing so
+    /// will stall the CPU.
     HfRco
 );
 
@@ -51,6 +56,11 @@ impl<Frequency> HfRco<Frequency> {
     }
 
     /// Disables the `HFRCO` by setting the `HFRCODIS` bit in `CMU_OSCENCMD`.
+    ///
+    /// # Warning
+    /// The `HfRco` should not be disabled or dropped unless a different clock has been configured
+    /// for the `HFCLK`, as the CPU clock is tied to the `HFCORECLK` which depends on it. Doing so
+    /// will stall the CPU.
     #[inline]
     pub fn disable(mut self) -> HfRco<super::Off> {
         self._disable();
