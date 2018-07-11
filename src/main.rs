@@ -22,11 +22,13 @@ pub mod device_information;
 pub mod devices;
 pub mod frequencies;
 pub mod gpio;
+pub mod usb;
 pub mod leuart;
 
 use core::panic::*;
 use devices::FinalizeDevice;
 use gpio::*;
+use usb::*;
 use leuart::*;
 use rt::ExceptionFrame;
 
@@ -90,130 +92,6 @@ fn init_rtc(ms: u32, rtc: &efm32hg309f64::rtc::RegisterBlock) {
     rtc.ien.write(|w| w.comp0().set_bit());
 }
 
-// fn init_usb(usb: &efm32hg309f64::usb::RegisterBlock) {
-//     usb.ctrl.write(|w| {
-//         w.lemoscctrl()
-//             .gate()
-//             .lemidleen()
-//             .set_bit()
-//             .lemphyctrl()
-//             .set_bit()
-//     });
-
-//     usb.route.write(|w| w.phypen().set_bit());
-
-//     usb.pcgcctl.modify(|_, w| {
-//         w.stoppclk()
-//             .clear_bit()
-//             .pwrclmp()
-//             .clear_bit()
-//             .rstpdwnmodule()
-//             .clear_bit()
-//     });
-
-//     usb.grstctl.modify(|_, w| w.csftrst().set_bit());
-//     while usb.grstctl.read().csftrst().bit_is_set() {}
-//     while usb.grstctl.read().ahbidle().bit_is_clear() {}
-
-//     usb.dcfg.modify(|_, w| {
-//         w.devspd()
-//             .fs()
-//             .nzstsouthshk()
-//             .set_bit()
-//             .perfrint()
-//             ._80pcnt()
-//     });
-
-//     usb.gahbcfg
-//         .modify(|_, w| w.hbstlen().single().dmaen().set_bit());
-
-//     usb.dctl.modify(|_, w| {
-//         w.cgoutnak()
-//             .clear_bit()
-//             .sgoutnak()
-//             .clear_bit()
-//             .cgnpinnak()
-//             .clear_bit()
-//             .sgnpinnak()
-//             .clear_bit()
-//             .ignrfrmnum()
-//             .set_bit()
-//     });
-
-//     const TOTAL_RX_FIFO_SIZE: u16 = 128;
-//     const EP_TX_FIFO_SIZE: u16 = 64;
-
-//     usb.grxfsiz
-//         .write(|w| unsafe { w.rxfdep().bits(TOTAL_RX_FIFO_SIZE) });
-
-//     usb.gnptxfsiz.write(|w| unsafe {
-//         w.nptxfstaddr()
-//             .bits(TOTAL_RX_FIFO_SIZE)
-//             .nptxfineptxf0dep()
-//             .bits(EP_TX_FIFO_SIZE)
-//     });
-
-//     usb.dctl.modify(|_, w| {
-//         w.cgoutnak()
-//             .clear_bit()
-//             .sgoutnak()
-//             .clear_bit()
-//             .cgnpinnak()
-//             .clear_bit()
-//             .sgnpinnak()
-//             .clear_bit()
-//             .sftdiscon()
-//             .clear_bit()
-//     });
-
-//     const DEVADDR0: u8 = 0;
-//     usb.dcfg
-//         .modify(|_, w| unsafe { w.devaddr().bits(DEVADDR0) });
-
-//     usb.gahbcfg.modify(|_, w| w.glblintrmsk().set_bit());
-//     usb.gintmsk.write(|w| {
-//         w.usbrstmsk()
-//             .set_bit()
-//             .enumdonemsk()
-//             .set_bit()
-//             .iepintmsk()
-//             .set_bit()
-//             .oepintmsk()
-//             .set_bit()
-//     });
-//     usb.daintmsk
-//         .write(|w| w.inepmsk0().set_bit().outepmsk0().set_bit());
-//     usb.doepmsk.write(|w| {
-//         w.setupmsk()
-//             .set_bit()
-//             .xfercomplmsk()
-//             .set_bit()
-//             .stsphsercvdmsk()
-//             .set_bit()
-//     });
-//     usb.diepmsk.write(|w| w.xfercomplmsk().set_bit());
-//     usb.doep0_ctl.write(|w| {
-//         w.setd0pidef()
-//             .set_bit()
-//             .usbactep()
-//             .set_bit()
-//             .snak()
-//             .set_bit()
-//             .eptype()
-//             .control()
-//     });
-//     usb.diep0_ctl.write(|w| {
-//         w.setd0pidef()
-//             .set_bit()
-//             .usbactep()
-//             .set_bit()
-//             .snak()
-//             .set_bit()
-//             .eptype()
-//             .control()
-//     });
-// }
-
 fn init_nvic(nvic: &mut cortex_m::peripheral::NVIC) {
     nvic.enable(efm32hg309f64::Interrupt::RTC);
     nvic.enable(efm32hg309f64::Interrupt::LEUART0);
@@ -240,11 +118,12 @@ fn main() -> ! {
     let leuart = Leuart::location0(Some(pins.pb13), Some(pins.pb14));
     leuart.baud_rate(9600.0);
 
-    //    init_usb(&ep.USB);
+//    init_usb(&ep.USB);
     init_nvic(&mut cp.NVIC);
 
     loop {
         leuart.write(b"Hello!\n");
+        pins.pa0.tgl();
     }
 }
 
@@ -252,62 +131,6 @@ exception!(HardFault, hard_fault_handler);
 fn hard_fault_handler(_ef: &ExceptionFrame) -> ! {
     loop {}
 }
-
-interrupt!(RTC, rtc_handler);
-fn rtc_handler() {
-    let rtc = unsafe { &*efm32hg309f64::RTC::ptr() };
-
-    rtc.ifc
-        .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
-
-    //    gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
-}
-
-// static mut counter: u32 = 0;
-
-// enum ControlState {
-//     WaitSetup,
-//     InData,
-//     OutData,
-//     LastInData,
-//     WaitStatusIn,
-//     WaitStatusOut,
-//     Stalled,
-// }
-// static mut USB_STATE: ControlState = ControlState::WaitSetup;
-
-// interrupt!(USB, usb_handler);
-// fn usb_handler() {
-//     let gpio = unsafe { &*efm32hg309f64::GPIO::ptr() };
-//     let usb: &efm32hg309f64::usb::RegisterBlock = unsafe { &*efm32hg309f64::USB::ptr() };
-
-//     let intsts = usb.gintsts.read();
-
-//     if intsts.usbrst().bit_is_set() {
-//         usb.gintsts.write(|w| w.usbrst().set_bit());
-
-//         const DEVADDR0: u8 = 0;
-//         usb.dcfg
-//             .modify(|_, w| unsafe { w.devaddr().bits(DEVADDR0) });
-//     }
-
-//     if intsts.enumdone().bit_is_set() {
-//         usb.gintsts.write(|w| w.enumdone().set_bit());
-//         unsafe {
-//             USB_STATE = ControlState::WaitSetup;
-//         }
-//     }
-//     // rtc.ifc
-//     //     .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
-
-//     unsafe {
-//         counter += 1;
-//         if counter > 0x100000 {
-//             counter = 0;
-//             gpio.pa_douttgl.write(|w| w.douttgl().bits(1));
-//         }
-//     }
-// }
 
 exception!(*, default_handler);
 fn default_handler(_irqn: i16) {
