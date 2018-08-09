@@ -23,9 +23,10 @@ pub mod consts;
 pub mod device_information;
 pub mod devices;
 pub mod gpio;
-pub mod usb;
 pub mod leuart;
+pub mod nvic;
 pub mod panic;
+pub mod usb;
 
 use devices::StaticDevice;
 // use gpio::*;
@@ -84,17 +85,11 @@ fn init_rtc(ms: u32, rtc: &efm32hg309f64::rtc::RegisterBlock) {
     rtc.ien.write(|w| w.comp0().set_bit());
 }
 
-fn init_nvic(nvic: &mut cortex_m::peripheral::NVIC) {
-    nvic.enable(efm32hg309f64::Interrupt::RTC);
-    nvic.enable(efm32hg309f64::Interrupt::LEUART0);
-    nvic.enable(efm32hg309f64::Interrupt::USB);
-}
-
 entry!(main);
 #[inline]
 fn main() -> ! {
     let ep = efm32hg309f64::Peripherals::take().unwrap();
-    let mut cp = efm32hg309f64::CorePeripherals::take().unwrap();
+    let cp = efm32hg309f64::CorePeripherals::take().unwrap();
 
     init_wdog(&ep.WDOG);
 
@@ -103,8 +98,6 @@ fn main() -> ! {
     init_rtc(80, &ep.RTC);
 
     let gpio = unsafe { gpio::InitialGpioState::get_initial_state(ep.GPIO) };
-
-    init_nvic(&mut cp.NVIC);
 
     let mut pb13 = gpio
         .pb13
@@ -116,19 +109,19 @@ fn main() -> ! {
         .location1()
         .enable_tx(&mut pb13);
 
-    loop {
-        leuart.write_blocking(b"Hello!\n");
-    }
-}
+    let mut rtc_handler = nvic::InterruptHandler::new(|| {
+        let rtc = unsafe { &*efm32hg309f64::RTC::ptr() };
 
-interrupt!(RTC, rtc_handler);
-fn rtc_handler() {
-    let rtc = unsafe { &*efm32hg309f64::RTC::ptr() };
+        rtc.ifc
+            .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
+    });
 
-    rtc.ifc
-        .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
-
-    //    gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
+    nvic::Nvic::new(cp.NVIC).with_handler(|handler| {
+        handler.register(efm32hg309f64::Interrupt::RTC, &mut rtc_handler);
+        loop {
+            leuart.write_blocking(b"Hello!\n");
+        }
+    })
 }
 
 exception!(*, default_handler);
