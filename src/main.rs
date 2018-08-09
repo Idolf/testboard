@@ -23,6 +23,7 @@ pub mod consts;
 pub mod device_information;
 pub mod devices;
 pub mod gpio;
+pub mod usb;
 pub mod leuart;
 pub mod panic;
 
@@ -116,24 +117,18 @@ fn main() -> ! {
         .enable_tx(&mut pb13);
 
     loop {
-        use core::fmt::Write;
-        unsafe {
-            *(0 as *mut u64) = 10;
-        }
-        write!(leuart, "Hello {}!\n", 42);
-        cortex_m::asm::delay(10_000_000);
+        leuart.write_blocking(b"Hello!\n");
     }
 }
 
 interrupt!(RTC, rtc_handler);
 fn rtc_handler() {
     let rtc = unsafe { &*efm32hg309f64::RTC::ptr() };
-    let gpio = unsafe { &*efm32hg309f64::GPIO::ptr() };
 
     rtc.ifc
         .write(|w| w.comp1().set_bit().comp0().set_bit().of().set_bit());
 
-    gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
+    //    gpio.pa_douttgl.write(|w| unsafe { w.douttgl().bits(1) });
 }
 
 exception!(*, default_handler);
