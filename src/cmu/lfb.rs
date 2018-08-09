@@ -34,17 +34,12 @@ macro_rules! lfb_source {
 }
 
 impl<'source, Source> LfbClk<'source, Source> {
+    /// Disables the `LFBCLK` by clearing the `LFB` and `LFBE` subfields in `CMU_LFCLKSEL`.
     #[inline]
-    fn _disable(&mut self) {
+    pub fn disable(self) -> LfbClk<'static, Off> {
         let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
         cmu.lfclksel
             .modify(|_, w| w.lfbe().clear_bit().lfb().disabled());
-    }
-
-    /// Disables the `LFBCLK` by clearing the `LFB` and `LFBE` subfields in `CMU_LFCLKSEL`.
-    #[inline]
-    pub fn disable(mut self) -> LfbClk<'static, Off> {
-        self._disable();
         unsafe { self.transmute_state() }
     }
 
@@ -114,21 +109,17 @@ impl<'source, Source, Division> LfbClkLeuart0<'source, Source, Division> {
     lfbclk_div!(enable_div4 div4 U4);
     lfbclk_div!(enable_div8 div8 U8);
 
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-
-        while cmu.syncbusy.read().lfbclken0().bit_is_set() {}
-        cmu.lfbclken0.write(|w| w.leuart0().clear_bit());
-    }
-
     /// Disables the `LFBCLKLEUART0` by clearing the `RTC` bit in `CMU_LFBCLKEN0`.
     ///
     /// This function will not write to `CMU_LFBCLKEN0` until the relevant bit in `CMU_SYNCBUSY`
     /// is clear.
     #[inline]
-    pub fn disable(mut self) -> LfbClkLeuart0<'static, super::Off, super::Off> {
-        self._disable();
+    pub fn disable(self) -> LfbClkLeuart0<'static, super::Off, super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+
+        while cmu.syncbusy.read().lfbclken0().bit_is_set() {}
+        cmu.lfbclken0.write(|w| w.leuart0().clear_bit());
+
         unsafe { self.transmute_state() }
     }
 }

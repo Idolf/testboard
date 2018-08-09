@@ -5,12 +5,6 @@ use typenum;
 clock_switch_and_divide!(
     /// This type represents ownership over the `HFCLK`, the primary High-Frequency Clock which most
     /// high-frequency peripherals depend on.
-    ///
-    /// # Drop semantics
-    /// This clock cannot be turned off in the hardware, and doing so would in any case be
-    /// inadvisable since the CPU is tied to the `HfCoreClk`, which depends on this clock.
-    ///
-    /// This means that unlike most other clocks, dropping the value will not turn off the clock.
     HfClk
 );
 
@@ -74,7 +68,4 @@ impl<'source, Source, Division> HfClk<'source, Source, Division> {
         cmu.cmd.write(|w| w.hfclksel().ushfrcodiv2());
         unsafe { self.transmute_state() }
     }
-
-    #[inline]
-    fn _disable(&mut self) {}
 }

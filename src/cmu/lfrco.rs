@@ -1,5 +1,5 @@
+use consts;
 use efm32hg309f64;
-use frequencies;
 
 clock_source!(
     /// This type represents ownership over the `LFRCO`, the Low-Frequency RC Oscillator, which
@@ -10,11 +10,6 @@ clock_source!(
 clock_source!(
     /// This type represents ownership over the `ULFRCO`, the Ultra Low-Frequency RC Oscillator,
     /// which is always oscillates at 1000 Hz.
-    ///
-    /// # Drop semantics
-    /// This clock cannot be turned off in the hardware or even configured in any ways.
-    ///
-    /// This means that unlike most other clocks, dropping the value will not turn off the clock.
     ULfRco
 );
 
@@ -24,7 +19,7 @@ impl<Frequency> LfRco<Frequency> {
     /// This function will block until the `LFRCO` as ready, by waiting for the `LFRCORDY`
     /// bit to be set in `CMU_STATUS`.
     #[inline]
-    pub fn enable_32768hz(self) -> LfRco<frequencies::Hz32768> {
+    pub fn enable_32768hz(self) -> LfRco<consts::Hz32768> {
         let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
 
         cmu.oscencmd.write(|w| w.lfrcoen().set_bit());
@@ -33,21 +28,11 @@ impl<Frequency> LfRco<Frequency> {
         unsafe { self.transmute_state() }
     }
 
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-        cmu.oscencmd.write(|w| w.lfrcodis().set_bit());
-    }
-
     /// Enables the `LFRCO` by setting the `LFRCODIS` bit in `CMU_OSENCMD`.
     #[inline]
-    pub fn disable(mut self) -> LfRco<super::Off> {
-        self._disable();
+    pub fn disable(self) -> LfRco<super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        cmu.oscencmd.write(|w| w.lfrcodis().set_bit());
         unsafe { self.transmute_state() }
     }
-}
-
-impl<Frequency> ULfRco<Frequency> {
-    #[inline]
-    fn _disable(&mut self) {}
 }

@@ -1,15 +1,10 @@
+use consts;
 use device_information;
 use efm32hg309f64;
-use frequencies;
 
 clock_source!(
     /// This type represents ownership over the `HFRCO`, the High-Frequency RC Oscillator, which can
     /// oscillate at 1-21MHz.
-    ///
-    /// # Warning
-    /// The `HfRco` should not be disabled or dropped unless a different clock has been configured
-    /// for the `HFCLK`, as the CPU clock is tied to the `HFCORECLK` which depends on it. Doing so
-    /// will stall the CPU.
     HfRco
 );
 
@@ -27,7 +22,7 @@ macro_rules! hfrco_frequency {
         /// This function will block until the `HFRCO` as ready, by waiting for the `HFRCORDY` bit
         /// to be set in `CMU_STATUS`.
         #[inline]
-        pub fn $meth(self) -> HfRco<frequencies::$freq> {
+        pub fn $meth(self) -> HfRco<consts::$freq> {
             let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
             cmu.hfrcoctrl.write(|w| {
                 unsafe {
@@ -50,21 +45,17 @@ impl<Frequency> HfRco<Frequency> {
     hfrco_frequency!(enable_14mhz Mhz14 _14mhz get_hfrco_calib_band_14);
     hfrco_frequency!(enable_21mhz Mhz21 _21mhz get_hfrco_calib_band_21);
 
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-        cmu.oscencmd.write(|w| w.hfrcodis().set_bit());
-    }
-
     /// Disables the `HFRCO` by setting the `HFRCODIS` bit in `CMU_OSCENCMD`.
     ///
     /// # Warning
-    /// The `HfRco` should not be disabled or dropped unless a different clock has been configured
-    /// for the `HFCLK`, as the CPU clock is tied to the `HFCORECLK` which depends on it. Doing so
-    /// will stall the CPU.
+    /// The `HfRco` should not be disabled unless a different clock has been configured for the
+    /// `HFCLK`, as the CPU clock is tied to the `HFCORECLK` which depends on it. If it is disabled
+    /// before this happens, then the CPU will stall. Ideally this requirement should be encoded in
+    /// the types, however it does not appear that there is a good solution for doing this.
     #[inline]
-    pub fn disable(mut self) -> HfRco<super::Off> {
-        self._disable();
+    pub fn disable(self) -> HfRco<super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        cmu.oscencmd.write(|w| w.hfrcodis().set_bit());
         unsafe { self.transmute_state() }
     }
 }
@@ -77,7 +68,7 @@ macro_rules! auxhfrco_frequency {
         /// This function will block until the `AUXHFRCO` as ready, by waiting for the `AUXHFRCORDY`
         /// bit to be set in `CMU_STATUS`.
         #[inline]
-        pub fn $meth(self) -> AuxHfRco<frequencies::$freq> {
+        pub fn $meth(self) -> AuxHfRco<consts::$freq> {
             let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
             cmu.auxhfrcoctrl.write(|w| {
                 unsafe {
@@ -100,16 +91,11 @@ impl<Frequency> AuxHfRco<Frequency> {
     auxhfrco_frequency!(enable_14mhz Mhz14 _14mhz get_auxhfrco_calib_band_14);
     auxhfrco_frequency!(enable_21mhz Mhz21 _21mhz get_auxhfrco_calib_band_21);
 
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-        cmu.oscencmd.write(|w| w.auxhfrcodis().set_bit());
-    }
-
     /// Disables the `AUXHFRCO` by setting the `AUXHFRCODIS` bit in `CMU_OSCENCMD`.
     #[inline]
-    pub fn disable(mut self) -> AuxHfRco<super::Off> {
-        self._disable();
+    pub fn disable(self) -> AuxHfRco<super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        cmu.oscencmd.write(|w| w.auxhfrcodis().set_bit());
         unsafe { self.transmute_state() }
     }
 }

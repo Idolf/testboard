@@ -5,6 +5,7 @@ macro_rules! clock_source {
             frequency: ::core::marker::PhantomData<Frequency>,
             non_send: ::core::marker::PhantomData<*mut ()>,
         }
+        unsafe impl<Frequency> Sync for $name<Frequency> {}
 
         impl<Frequency: ::typenum::Unsigned> ::cmu::Clock for $name<Frequency> {
             const FREQUENCY: f64 = Frequency::U64 as f64;
@@ -12,11 +13,11 @@ macro_rules! clock_source {
 
         impl<Frequency> ::devices::Device for $name<Frequency> {}
 
-        impl<Frequency: 'static> ::devices::FinalizeDevice for $name<Frequency> {
+        impl<Frequency: 'static> ::devices::StaticDevice for $name<Frequency> {
             #[inline]
-            fn finalize(self) -> ::devices::Finalized<$name<Frequency>> {
+            fn finalize(self) -> &'static mut Self {
                 assert_eq_size!(Self, ());
-                ::devices::Finalized::new(self)
+                unsafe { ::devices::make_static_mut(self) }
             }
         }
 
@@ -30,16 +31,15 @@ macro_rules! clock_source {
                     non_send: ::core::marker::PhantomData,
                 }
             }
-        }
 
-        impl<Frequency> Drop for $name<Frequency> {
             #[inline]
-            fn drop(&mut self) {
-                self._disable();
+            pub unsafe fn claim_ownership() -> Self {
+                $name {
+                    frequency: ::core::marker::PhantomData,
+                    non_send: ::core::marker::PhantomData,
+                }
             }
         }
-
-        unsafe impl<Frequency> Sync for $name<Frequency> {}
     };
 }
 
@@ -57,11 +57,11 @@ macro_rules! clock_switch {
 
         impl<'source, Source> ::devices::Device for $name<'source, Source> {}
 
-        impl<Source: 'static> ::devices::FinalizeDevice for $name<'static, Source> {
+        impl<Source: 'static> ::devices::StaticDevice for $name<'static, Source> {
             #[inline]
-            fn finalize(self) -> ::devices::Finalized<$name<'static, Source>> {
+            fn finalize(self) -> &'static mut Self {
                 assert_eq_size!(Self, ());
-                ::devices::Finalized::new(self)
+                unsafe { ::devices::make_static_mut(self) }
             }
         }
 
@@ -76,12 +76,13 @@ macro_rules! clock_switch {
                     non_send: ::core::marker::PhantomData,
                 }
             }
-        }
 
-        impl<'source, Source> Drop for $name<'source, Source> {
             #[inline]
-            fn drop(&mut self) {
-                self._disable();
+            pub unsafe fn claim_ownership() -> Self {
+                $name {
+                    source: ::core::marker::PhantomData,
+                    non_send: ::core::marker::PhantomData,
+                }
             }
         }
 
@@ -107,12 +108,12 @@ macro_rules! clock_switch_and_divide {
         impl<'source, Source, Division> ::devices::Device
             for $name<'source, Source, Division> {}
 
-        impl<Source: 'static, Division: 'static> ::devices::FinalizeDevice
+        impl<Source: 'static, Division: 'static> ::devices::StaticDevice
             for $name<'static, Source, Division> {
             #[inline]
-            fn finalize(self) -> ::devices::Finalized<$name<'static, Source, Division>> {
+            fn finalize(self) -> &'static mut Self {
                 assert_eq_size!(Self, ());
-                ::devices::Finalized::new(self)
+                unsafe { ::devices::make_static_mut(self) }
             }
         }
 
@@ -128,12 +129,14 @@ macro_rules! clock_switch_and_divide {
                     non_send: ::core::marker::PhantomData,
                 }
             }
-        }
 
-        impl<'source, Source, Division> Drop for $name<'source, Source, Division> {
             #[inline]
-            fn drop(&mut self) {
-                self._disable();
+            pub unsafe fn claim_ownership() -> Self {
+                $name {
+                    source: ::core::marker::PhantomData,
+                    division: ::core::marker::PhantomData,
+                    non_send: ::core::marker::PhantomData,
+                }
             }
         }
 

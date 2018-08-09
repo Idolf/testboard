@@ -16,31 +16,21 @@ clock_source!(
 );
 
 impl<Frequency> HfXo<Frequency> {
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-        cmu.oscencmd.write(|w| w.hfxodis().set_bit());
-    }
-
     /// Disables the `HFXO` by setting the `HFXODIS` bitsin `CMU_OSENCMD`.
     #[inline]
-    pub fn disable(mut self) -> HfXo<super::Off> {
-        self._disable();
+    pub fn disable(self) -> HfXo<super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        cmu.oscencmd.write(|w| w.hfxodis().set_bit());
         unsafe { self.transmute_state() }
     }
 }
 
 impl<Frequency> LfXo<Frequency> {
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-        cmu.oscencmd.write(|w| w.lfxodis().set_bit());
-    }
-
     /// Disables the `LFXO` by setting the `HFXODIS` bitsin `CMU_OSENCMD`.
     #[inline]
-    pub fn disable(mut self) -> LfXo<super::Off> {
-        self._disable();
+    pub fn disable(self) -> LfXo<super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        cmu.oscencmd.write(|w| w.lfxodis().set_bit());
         unsafe { self.transmute_state() }
     }
 }

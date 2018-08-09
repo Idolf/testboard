@@ -1,6 +1,6 @@
+use consts;
 use device_information;
 use efm32hg309f64;
-use frequencies;
 use typenum;
 
 clock_source!(
@@ -28,7 +28,7 @@ macro_rules! ushfrco_frequency {
         /// This function will block until the `USHFRCO` as ready, by waiting for the `USHFRCORDY`
         /// bit to be set in `CMU_STATUS`.
         #[inline]
-        pub fn $meth(self) -> UsHfRco<frequencies::$freq> {
+        pub fn $meth(self) -> UsHfRco<consts::$freq> {
             let (coarse, fine) = device_information::$calib();
 
             let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
@@ -49,16 +49,11 @@ impl<Frequency> UsHfRco<Frequency> {
     ushfrco_frequency!(enable_24mhz Mhz24 _24mhz get_ushfrco_calib_band_24);
     ushfrco_frequency!(enable_48mhz Mhz48 _48mhz get_ushfrco_calib_band_48);
 
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-        cmu.oscencmd.write(|w| w.ushfrcodis().set_bit());
-    }
-
     /// Disables the `USHFRCO` by setting the `USHFRCODIS` bit in `CMU_OSENCMD`.
     #[inline]
-    pub fn disable(mut self) -> UsHfRco<super::Off> {
-        self._disable();
+    pub fn disable(self) -> UsHfRco<super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        cmu.oscencmd.write(|w| w.ushfrcodis().set_bit());
         unsafe { self.transmute_state() }
     }
 }
@@ -69,8 +64,8 @@ impl<'source, Source, Division> UsHfRcoDiv<'source, Source, Division> {
     #[inline]
     pub fn enable_div1<'new_source>(
         self,
-        ushfrco: &'new_source UsHfRco<frequencies::Mhz24>,
-    ) -> UsHfRcoDiv<'new_source, UsHfRco<frequencies::Mhz24>, typenum::U1> {
+        ushfrco: &'new_source UsHfRco<consts::Mhz24>,
+    ) -> UsHfRcoDiv<'new_source, UsHfRco<consts::Mhz24>, typenum::U1> {
         let _ = ushfrco;
         let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
         cmu.ushfrcoconf.modify(|_, w| w.ushfrcodiv2dis().set_bit());
@@ -94,15 +89,11 @@ impl<'source, Source, Division> UsHfRcoDiv<'source, Source, Division> {
         unsafe { self.transmute_state() }
     }
 
-    #[inline]
-    fn _disable(&mut self) {}
-
     /// Disables the `USHFRCODIV2`. This does not actually do anything at run-time, but before we
     /// can allow the `USHFRCO` to be reconfigured, we need to call this function to make sure that
     /// there are no users of the clock while it is being reconfigured.
     #[inline]
-    pub fn disable(mut self) -> UsHfRcoDiv<'static, super::Off, super::Off> {
-        self._disable();
+    pub fn disable(self) -> UsHfRcoDiv<'static, super::Off, super::Off> {
         unsafe { self.transmute_state() }
     }
 }

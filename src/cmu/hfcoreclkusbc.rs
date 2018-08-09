@@ -38,16 +38,11 @@ impl<'source, Source> HfCoreClkUsbC<'source, Source> {
     hfcoreclkusbc_source!(enable_lfrco LfRco lfrco usbclfrcosel);
     hfcoreclkusbc_source!(enable_ushfrco UsHfRco ushfrco usbcushfrcosel);
 
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-        cmu.hfcoreclken0.modify(|_, w| w.usbc().clear_bit());
-    }
-
     /// Disables the `HFCORECLKUSBC` by clearing the `USBC` bit in `CMU_HFCORECLKEN0`.
     #[inline]
-    pub fn disable(mut self) -> HfCoreClkUsbC<'static, super::Off> {
-        self._disable();
+    pub fn disable(self) -> HfCoreClkUsbC<'static, super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        cmu.hfcoreclken0.modify(|_, w| w.usbc().clear_bit());
         unsafe { self.transmute_state() }
     }
 }

@@ -5,12 +5,6 @@ use typenum;
 clock_switch_and_divide!(
     /// This type represents ownership over the `HFCORECLK`, the High-Frequency Core Clock which is
     /// used to drive the CPU and for peripherals tightly coupled to the CPU.
-    ///
-    /// # Drop semantics
-    /// This clock cannot be turned off in the hardware, and doing so would in any case be
-    /// inadvisable since the CPU is tied to it.
-    ///
-    /// This means that unlike most other clocks, dropping the value will not turn off the clock.
     HfCoreClk
 );
 
@@ -62,9 +56,6 @@ impl<'source, Source, Division> HfCoreClk<'source, Source, Division> {
     hfcoreclk_div!(div128 hfclk128 U128);
     hfcoreclk_div!(div256 hfclk256 U256);
     hfcoreclk_div!(div512 hfclk512 U512);
-
-    #[inline]
-    fn _disable(&mut self) {}
 }
 
 macro_rules! hfcoreclk_subclock {
@@ -85,16 +76,11 @@ macro_rules! hfcoreclk_subclock {
                 unsafe { self.transmute_state() }
             }
 
-            #[inline]
-            fn _disable(&mut self) {
-                let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-                cmu.hfcoreclken0.modify(|_, w| w.$fun().clear_bit());
-            }
-
             /// Disables the clock by clearing the relevant bit in `CMU_HFCORECLKEN0`.
             #[inline]
-            pub fn disable(mut self) -> $typ<'static, super::Off> {
-                self._disable();
+            pub fn disable(self) -> $typ<'static, super::Off> {
+                let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+                cmu.hfcoreclken0.modify(|_, w| w.$fun().clear_bit());
                 unsafe { self.transmute_state() }
             }
         }

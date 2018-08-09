@@ -49,16 +49,11 @@ impl<'source, Source, Division> HfCoreClkLeDiv<'source, Source, Division> {
         unsafe { self.transmute_state() }
     }
 
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-        cmu.hfcoreclken0.modify(|_, w| w.le().clear_bit());
-    }
-
     /// Disables the `HFCORECLKLE` by clearing the relevant bit in `CMU_HFCORECLKLE0`.
     #[inline]
-    pub fn disable(mut self) -> HfCoreClkLeDiv<'static, super::Off, super::Off> {
-        self._disable();
+    pub fn disable(self) -> HfCoreClkLeDiv<'static, super::Off, super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        cmu.hfcoreclken0.modify(|_, w| w.le().clear_bit());
         unsafe { self.transmute_state() }
     }
 }

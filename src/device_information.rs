@@ -1,19 +1,19 @@
-const USHFRCO_COARSECAL_BAND_24: *const u8 = 0x0fe081cc as *const u8;
-const USHFRCO_FINECAL_BAND_24: *const u8 = 0x0fe081cd as *const u8;
-const USHFRCO_COARSECAL_BAND_48: *const u8 = 0x0fe081ce as *const u8;
-const USHFRCO_FINECAL_BAND_48: *const u8 = 0x0fe081cf as *const u8;
+const USHFRCO_COARSECAL_BAND_24: *const u8 = 0x0fe0_81cc as *const u8;
+const USHFRCO_FINECAL_BAND_24: *const u8 = 0x0fe0_81cd as *const u8;
+const USHFRCO_COARSECAL_BAND_48: *const u8 = 0x0fe0_81ce as *const u8;
+const USHFRCO_FINECAL_BAND_48: *const u8 = 0x0fe0_81cf as *const u8;
 
-const AUXHFRCO_CALIB_BAND_1: *const u8 = 0x0fe081d4 as *const u8;
-const AUXHFRCO_CALIB_BAND_7: *const u8 = 0x0fe081d5 as *const u8;
-const AUXHFRCO_CALIB_BAND_11: *const u8 = 0x0fe081d6 as *const u8;
-const AUXHFRCO_CALIB_BAND_14: *const u8 = 0x0fe081d7 as *const u8;
-const AUXHFRCO_CALIB_BAND_21: *const u8 = 0x0fe081d8 as *const u8;
+const AUXHFRCO_CALIB_BAND_1: *const u8 = 0x0fe0_81d4 as *const u8;
+const AUXHFRCO_CALIB_BAND_7: *const u8 = 0x0fe0_81d5 as *const u8;
+const AUXHFRCO_CALIB_BAND_11: *const u8 = 0x0fe0_81d6 as *const u8;
+const AUXHFRCO_CALIB_BAND_14: *const u8 = 0x0fe0_81d7 as *const u8;
+const AUXHFRCO_CALIB_BAND_21: *const u8 = 0x0fe0_81d8 as *const u8;
 
-const HFRCO_CALIB_BAND_1: *const u8 = 0x0fe081dc as *const u8;
-const HFRCO_CALIB_BAND_7: *const u8 = 0x0fe081dd as *const u8;
-const HFRCO_CALIB_BAND_11: *const u8 = 0x0fe081de as *const u8;
-const HFRCO_CALIB_BAND_14: *const u8 = 0x0fe081df as *const u8;
-const HFRCO_CALIB_BAND_21: *const u8 = 0x0fe081e0 as *const u8;
+const HFRCO_CALIB_BAND_1: *const u8 = 0x0fe0_81dc as *const u8;
+const HFRCO_CALIB_BAND_7: *const u8 = 0x0fe0_81dd as *const u8;
+const HFRCO_CALIB_BAND_11: *const u8 = 0x0fe0_81de as *const u8;
+const HFRCO_CALIB_BAND_14: *const u8 = 0x0fe0_81df as *const u8;
+const HFRCO_CALIB_BAND_21: *const u8 = 0x0fe0_81e0 as *const u8;
 
 #[inline]
 pub fn get_hfrco_calib_band_1() -> u8 {

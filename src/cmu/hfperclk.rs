@@ -41,16 +41,11 @@ macro_rules! hfperclk_subclock {
                 unsafe { self.transmute_state() }
             }
 
-            #[inline]
-            fn _disable(&mut self) {
-                let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-                cmu.hfperclken0.modify(|_, w| w.$fun().clear_bit());
-            }
-
             /// Disables the clock by clearing the relevant bit in `CMU_HFPERCLKEN0`.
             #[inline]
-            pub fn disable(mut self) -> $typ<'static, super::Off> {
-                self._disable();
+            pub fn disable(self) -> $typ<'static, super::Off> {
+                let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+                cmu.hfperclken0.modify(|_, w| w.$fun().clear_bit());
                 unsafe { self.transmute_state() }
             }
         }
@@ -69,16 +64,11 @@ impl<'source, Source, Division> HfPerClk<'source, Source, Division> {
     hfperclk_div!(enable_div256 hfclk256 U256);
     hfperclk_div!(enable_div512 hfclk512 U512);
 
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-        cmu.hfperclkdiv.write(|w| w.hfperclken().clear_bit());
-    }
-
     /// Disables the `HFPERCLK` by clearing the relevant bit `HFPERCLKEN` bit in `CMU_HFPERCLKDIV`.
     #[inline]
-    pub fn disable(mut self) -> HfPerClk<'static, super::Off, super::Off> {
-        self._disable();
+    pub fn disable(self) -> HfPerClk<'static, super::Off, super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        cmu.hfperclkdiv.write(|w| w.hfperclken().clear_bit());
         unsafe { self.transmute_state() }
     }
 }

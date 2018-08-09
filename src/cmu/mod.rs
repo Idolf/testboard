@@ -29,9 +29,8 @@
 //! * The clock named name `WDOGCLK` has not been represented yet. Doing so might be useful but has
 //! not yet implemented.
 
-use core::mem;
+use consts;
 use efm32hg309f64;
-use frequencies;
 
 #[macro_use]
 mod macros;
@@ -106,10 +105,10 @@ pub struct InitialCmuState {
     pub lfcclk: LfcClk<'static, Off>,
     pub lfcclkusble: LfcClkUsbLe<'static, Off>,
 
-    pub hfrco: HfRco<frequencies::Mhz14>,
+    pub hfrco: HfRco<consts::Mhz14>,
     pub auxhfrco: AuxHfRco<Off>,
     pub lfrco: LfRco<Off>,
-    pub ulfrco: ULfRco<frequencies::Hz1000>,
+    pub ulfrco: ULfRco<consts::Hz1000>,
     pub ushfrco: UsHfRco<Off>,
     pub ushfrcodiv: UsHfRcoDiv<'static, Off, Off>,
     pub hfxo: HfXo<Off>,
@@ -120,9 +119,46 @@ impl InitialCmuState {
     /// Gets the initial cmu state.
     ///
     /// # Safety
-    /// This function assumes that the `CMU` given in the argument is in its initial state.
+    /// This function assumes that the `CMU` given in the argument is in its initial state and that
+    /// the function is only called once.
+    #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
     pub unsafe fn get_initial_state(cmu: efm32hg309f64::CMU) -> InitialCmuState {
         let _ = cmu;
-        mem::transmute::<(), InitialCmuState>(())
+        InitialCmuState {
+            hfclk: HfClk::claim_ownership(),
+            hfcoreclk: HfCoreClk::claim_ownership(),
+            hfperclk: HfPerClk::claim_ownership(),
+            hfcoreclkaes: HfCoreClkAes::claim_ownership(),
+            hfcoreclkdma: HfCoreClkDma::claim_ownership(),
+            hfcoreclkusb: HfCoreClkUsb::claim_ownership(),
+            hfcoreclklediv: HfCoreClkLeDiv::claim_ownership(),
+            hfcoreclkusbc: HfCoreClkUsbC::claim_ownership(),
+            hfperclkacmp0: HfPerClkAcmp0::claim_ownership(),
+            hfperclkadc0: HfPerClkAdc0::claim_ownership(),
+            hfperclkgpio: HfPerClkGpio::claim_ownership(),
+            hfperclki2c0: HfPerClkI2c0::claim_ownership(),
+            hfperclkidac0: HfPerClkIdac0::claim_ownership(),
+            hfperclkprs: HfPerClkPrs::claim_ownership(),
+            hfperclktimer0: HfPerClkTimer0::claim_ownership(),
+            hfperclktimer1: HfPerClkTimer1::claim_ownership(),
+            hfperclktimer2: HfPerClkTimer2::claim_ownership(),
+            hfperclkusart0: HfPerClkUsart0::claim_ownership(),
+            hfperclkusart1: HfPerClkUsart1::claim_ownership(),
+            hfperclkvcmp: HfPerClkVcmp::claim_ownership(),
+            lfaclk: LfaClk::claim_ownership(),
+            lfaclkrtc: LfaClkRtc::claim_ownership(),
+            lfbclk: LfbClk::claim_ownership(),
+            lfbclkleuart0: LfbClkLeuart0::claim_ownership(),
+            lfcclk: LfcClk::claim_ownership(),
+            lfcclkusble: LfcClkUsbLe::claim_ownership(),
+            hfrco: HfRco::claim_ownership(),
+            auxhfrco: AuxHfRco::claim_ownership(),
+            lfrco: LfRco::claim_ownership(),
+            ulfrco: ULfRco::claim_ownership(),
+            ushfrco: UsHfRco::claim_ownership(),
+            ushfrcodiv: UsHfRcoDiv::claim_ownership(),
+            hfxo: HfXo::claim_ownership(),
+            lfxo: LfXo::claim_ownership(),
+        }
     }
 }

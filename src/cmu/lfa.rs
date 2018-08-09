@@ -35,17 +35,12 @@ macro_rules! lfa_source {
 }
 
 impl<'source, Source> LfaClk<'source, Source> {
+    /// Disables the `LFACLK` by clearing the `LFA` and `LFAE` subfields in `CMU_LFCLKSEL`.
     #[inline]
-    fn _disable(&mut self) {
+    pub fn disable(self) -> LfaClk<'static, Off> {
         let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
         cmu.lfclksel
             .modify(|_, w| w.lfae().clear_bit().lfa().disabled());
-    }
-
-    /// Disables the `LFACLK` by clearing the `LFA` and `LFAE` subfields in `CMU_LFCLKSEL`.
-    #[inline]
-    pub fn disable(mut self) -> LfaClk<'static, Off> {
-        self._disable();
         unsafe { self.transmute_state() }
     }
 
@@ -127,21 +122,17 @@ impl<'source, Source, Division> LfaClkRtc<'source, Source, Division> {
     lfaclk_div!(enable_div16384 div16384 U16384);
     lfaclk_div!(enable_div32768 div32768 U32768);
 
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-
-        while cmu.syncbusy.read().lfaclken0().bit_is_set() {}
-        cmu.lfaclken0.write(|w| w.rtc().clear_bit());
-    }
-
     /// Disables the `LFACLKRTC` by clearing the `RTC` bit in `CMU_LFACLKEN0`.
     ///
     /// This function will not write to `CMU_LFACLKEN0` until the relevant bit in `CMU_SYNCBUSY`
     /// is clear.
     #[inline]
-    pub fn disable(mut self) -> LfaClkRtc<'static, super::Off, super::Off> {
-        self._disable();
+    pub fn disable(self) -> LfaClkRtc<'static, super::Off, super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+
+        while cmu.syncbusy.read().lfaclken0().bit_is_set() {}
+        cmu.lfaclken0.write(|w| w.rtc().clear_bit());
+
         unsafe { self.transmute_state() }
     }
 }

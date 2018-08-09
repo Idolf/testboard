@@ -1,3 +1,3 @@
-./testboard.bin
+/testboard.bin
 /target
 **/*.rs.bk

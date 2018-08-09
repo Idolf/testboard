@@ -35,16 +35,11 @@ impl<'source, Source> LfcClk<'source, Source> {
     lfc_source!(enable_lfrco lfrco LfRco);
     lfc_source!(enable_lfxo lfxo LfXo);
 
-    #[inline]
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-        cmu.lfclksel.modify(|_, w| w.lfc().disabled());
-    }
-
     /// Disables the `LFCCLK` by clearing the `LFC` subfield in `CMU_LFCLKSEL`.
     #[inline]
-    pub fn disable(mut self) -> LfcClk<'static, super::Off> {
-        self._disable();
+    pub fn disable(self) -> LfcClk<'static, super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        cmu.lfclksel.modify(|_, w| w.lfc().disabled());
         unsafe { self.transmute_state() }
     }
 }
@@ -70,20 +65,15 @@ impl<'source, Source> LfcClkUsbLe<'source, Source> {
         unsafe { self.transmute_state() }
     }
 
-    fn _disable(&mut self) {
-        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
-
-        while cmu.syncbusy.read().lfcclken0().bit_is_set() {}
-        cmu.lfcclken0.write(|w| w.usble().clear_bit());
-    }
-
     /// Disables the `LFCCLKUSBLE` by clearing the `USBLE` bit in `CMU_LFCCLKEN0`.
     ///
     /// This function will not write to `CMU_LFCCLKEN0` until it the relevant bit in `CMU_SYNCBUSY`
     /// is clear.
     #[inline]
-    pub fn disable(mut self) -> LfcClkUsbLe<'static, super::Off> {
-        self._disable();
+    pub fn disable(self) -> LfcClkUsbLe<'static, super::Off> {
+        let cmu = unsafe { &*efm32hg309f64::CMU::ptr() };
+        while cmu.syncbusy.read().lfcclken0().bit_is_set() {}
+        cmu.lfcclken0.write(|w| w.usble().clear_bit());
         unsafe { self.transmute_state() }
     }
 }
