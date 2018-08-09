@@ -26,10 +26,12 @@ impl<F> InterruptHandler<F> {
         }
     }
 
-    fn call(&mut self) {
+    fn call_inner(&mut self) {
         (self.function)(&mut self.data)
     }
 
+    // After unifying a mutable reference, it is still safe to call the
+    // "call_inner" function, but anything else is unsafe.
     fn unify<'a>(&'a mut self) -> *mut InterruptHandler<()> {
         self as *mut InterruptHandler<F> as *mut InterruptHandler<()>
     }
@@ -185,7 +187,7 @@ fn call_interrupt(interrupt: efm32hg309f64::Interrupt) {
     assert!(nr <= 21);
     let handler = INTERRUPT_HANDLERS[nr].load(Ordering::Acquire);
     if let Some(handler) = unsafe { handler.as_mut() } {
-        handler.call();
+        handler.call_inner();
     }
 }
 
